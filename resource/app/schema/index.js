@@ -4,6 +4,8 @@ const RoleSchema = require("./role.schema");
 const ActorSchema = require("./actor.schema");
 const GenreSchema = require("./genre.schema");
 const StudioSchema = require("./studio.schema");
+const PlanSchema = require("./plan.schema");
+const UserSchema = require("./user.schema");
 
 const GlobalSchema = {
   ...Authchema.Register,
@@ -14,6 +16,8 @@ const GlobalSchema = {
   ...ActorSchema,
   ...GenreSchema,
   ...StudioSchema,
+  ...PlanSchema,
+  ...UserSchema,
 };
 
 module.exports = GlobalSchema;

@@ -10,22 +10,45 @@ const PaymentHistorySchema = new Schema(
       ref: "Subscription",
       required: true,
     },
-    amount: {
+    price: {
       type: Number, // Diubah dari varchar ke number
       required: true,
     },
     status: {
       type: String,
       enum: ["success", "failed", "pending", "refunded"],
+      default: "pending",
       required: true,
     },
     method: {
       type: String, // Contoh: 'credit_card', 'bank_transfer', 'e-wallet'
       required: true,
+      default: "",
+    },
+    bank_name: {
+      type: String,
+      required: false,
+      ddefault: "",
     },
     transaction_date: {
       type: Date,
-      default: Date.now,
+      default: Date.now(),
+    },
+    expired_date: {
+      type: Date,
+      default: Date.now(),
+    },
+    payment_gateway_id: {
+      type: String, // ID transaksi dari Midtrans/Stripe/Xendit
+      default: null,
+    },
+    url_payment_success: {
+      type: String, // ID transaksi dari Midtrans/Stripe/Xendit
+      default: null,
+    },
+    url_payment_failed: {
+      type: String, // ID transaksi dari Midtrans/Stripe/Xendit
+      default: null,
     },
   },
   { timestamps: true, collection: "payment_history" },

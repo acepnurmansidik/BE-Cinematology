@@ -1,6 +1,6 @@
 const PlanSchema = new Schema(
   {
-    name: {
+    title: {
       type: String,
       required: [true, "Plan name is required"],
       unique: true,
@@ -12,7 +12,7 @@ const PlanSchema = new Schema(
       min: 0,
     },
     duration_days: {
-      type: Number, // Diubah dari uuid ke number
+      type: Number,
       required: [true, "Duration in days is required"],
     },
     features: {

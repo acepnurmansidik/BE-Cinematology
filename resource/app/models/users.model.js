@@ -29,13 +29,14 @@ const SysUserModel = Schema(
 
     // Menyimpan ringkasan status langganan saat ini untuk akses cepat
     subscription_info: {
+      subscription_id: { type: Schema.Types.ObjectId, ref: "Subscription" },
       plan_id: { type: Schema.Types.ObjectId, ref: "Plan" },
       status: {
         type: String,
         enum: ["active", "expired", "none"],
         default: "none",
       },
-      end_date: { type: Date },
+      end_date: { type: Date, required: false },
     },
   },
   {

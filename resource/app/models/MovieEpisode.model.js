@@ -11,7 +11,9 @@ const EpisodeSchema = new Schema(
     title: { type: String, required: true },
     release_date: { type: Date, required: true },
     duration: { type: Number, default: 0 }, // in seconds
-    views_count: { type: Number, default: 0 },
+    total_views: { type: Number, default: 0 },
+    total_likes: { type: Number, default: 0 },
+    total_unlikes: { type: Number, default: 0 },
     videos: [
       {
         provider: { type: String, required: true }, // e.g., 'Gdrive', 'S3'

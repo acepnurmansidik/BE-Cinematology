@@ -1,0 +1,56 @@
+const UserSchema = {
+  BodyUserTransactionSchema: {
+    plan_id: "John Doe",
+    price: 19.99,
+  },
+  BodyUserMovieLikeSchema: {
+    movie_id: "65f2a1b2c3d4e5f6a7b8c9d0",
+    episode_id: "65f2a1b2c3d4e5f6a7b8c9d1",
+    movie_name: "Inception",
+    status_like: "like", // "like", "dislike", atau "none"
+    is_guest: true,
+    location_raw: {
+      status: "success",
+      continent: "Asia",
+      continentCode: "AS",
+      country: "Indonesia",
+      countryCode: "ID",
+      region: "JK",
+      regionName: "Jakarta",
+      city: "North Jakarta",
+      zip: "14350",
+      lat: -6.1474,
+      lon: 106.8711,
+      timezone: "Asia/Jakarta",
+      offset: 25200,
+      mobile: false,
+      proxy: false,
+      hosting: false,
+    },
+  },
+  BodyUserWatchMovieSchema: {
+    movie_id: "65f2a1b2c3d4e5f6a7b8c9d0",
+    episode_id: "65f2a1b2c3d4e5f6a7b8c9d1",
+    is_guest: true,
+    location_raw: {
+      status: "success",
+      continent: "Asia",
+      continentCode: "AS",
+      country: "Indonesia",
+      countryCode: "ID",
+      region: "JK",
+      regionName: "Jakarta",
+      city: "North Jakarta",
+      zip: "14350",
+      lat: -6.1474,
+      lon: 106.8711,
+      timezone: "Asia/Jakarta",
+      offset: 25200,
+      mobile: false,
+      proxy: false,
+      hosting: false,
+    },
+  },
+};
+
+module.exports = UserSchema;

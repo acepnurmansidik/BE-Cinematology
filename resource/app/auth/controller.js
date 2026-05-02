@@ -7,6 +7,11 @@ const globalService = require("../../helper/global-func");
 const { default: mongoose } = require("mongoose");
 const crudServices = require("../../helper/crudService");
 const ReffParameter = require("../models/reffParam.model");
+const EpisodeLikeModel = require("../models/EpisodeLike.model");
+const EpisodeRatingModel = require("../models/EpisodeRating.model");
+const UserMovieLikeModel = require("../models/UserMovieLike.model");
+const UserMovieRatingModel = require("../models/UserMovieRating.model");
+const WatchHistoryModel = require("../models/WatchHistory.model");
 
 const controller = {};
 
@@ -24,7 +29,7 @@ controller.Register = async (req, res, next) => {
       schema: { $ref: '#/definitions/BodyAuthRegisterSchema' }
     }
   */
-    const { token, ...payload } = req.body;
+    const { token, ...payload, guest_id } = req.body;
 
     // komparasikan dengna yang ada di database
     const [isAvailable, defaultRole] = await Promise.all([
@@ -61,6 +66,37 @@ controller.Register = async (req, res, next) => {
       { session },
     );
 
+      // update semua data yang memiliki guest_id sama dengan guest_id yang dikirimkan oleh user ketika login
+    if (guest_id) {
+      await Promise.all([
+        EpisodeLikeModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+          {session}
+        ),
+        EpisodeRatingModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+           {session}
+        ),
+        UserMovieLikeModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+           {session}
+        ),
+        UserMovieRatingModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+           {session}
+        ),
+        WatchHistoryModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+           {session}
+        ),
+      ]);
+    }
+
     // Jika semua operasi berhasil, commit transaksi
     await session.commitTransaction();
 
@@ -76,6 +112,8 @@ controller.Register = async (req, res, next) => {
 };
 
 controller.Login = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     /*
     #swagger.tags = ['Master Role']
@@ -87,7 +125,7 @@ controller.Login = async (req, res, next) => {
       schema: { $ref: '#/definitions/BodyAuthLoginSchema' }
     }
   */
-    const { email, password } = req.body;
+    const { email, password, guest_id } = req.body;
     // komparasikan data darai body dengan di databse
 
     const isAvailable = await crudServices.findOne(AuthUser, {
@@ -122,13 +160,49 @@ controller.Login = async (req, res, next) => {
       name: isAvailable.data.username,
     });
 
+    // update semua data yang memiliki guest_id sama dengan guest_id yang dikirimkan oleh user ketika login
+    if (guest_id) {
+      await Promise.all([
+        EpisodeLikeModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+          {session}
+        ),
+        EpisodeRatingModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+           {session}
+        ),
+        UserMovieLikeModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+           {session}
+        ),
+        UserMovieRatingModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+           {session}
+        ),
+        WatchHistoryModel.updateMany(
+          { user_id: guest_id },
+          { user_id: users.data._id, is_guest: false },
+           {session}
+        ),
+      ]);
+    }
+
+    await session.commitTransaction();
+
     res.status(200).json({
       status: true,
       message: "Login success!",
       data: { ...users.data._doc, token },
     });
   } catch (err) {
+    await session.abortTransaction();
     next(err);
+  }finally {
+    session.endSession();
   }
 };
 

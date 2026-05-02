@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { model, Schema } = mongoose;
 
-const UserMovieLikeSchema = new Schema(
+const UserMovieRatingSchema = new Schema(
   {
     is_guest: {
       type: Boolean,
@@ -15,26 +15,6 @@ const UserMovieLikeSchema = new Schema(
       min: 0,
       max: 10,
     },
-    // Mengubah location menjadi Object
-    location: {
-      type: {
-        city: { type: String, default: null },
-        country: { type: String, default: null },
-        coordinates: {
-          latitude: { type: Number, default: 0 },
-          longitude: { type: Number, default: 0 },
-        },
-        ip_address: { type: String, default: null },
-      },
-      _id: false, // Agar tidak membuat _id otomatis di dalam objek location
-      default: {},
-    },
-    is_like: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-
     // References
     user_id: {
       type: Schema.Types.ObjectId,
@@ -46,27 +26,15 @@ const UserMovieLikeSchema = new Schema(
       ref: "Movie",
       required: [true, "Movie ID is required"],
     },
-    genres_name: {
-      type: String,
-      required: [true, "Genre names are required"],
-      trim: true,
-    },
-    genres: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Genre",
-        required: true,
-      },
-    ],
   },
   {
     timestamps: true,
     versionKey: false,
-    collection: "user_movie_likes",
+    collection: "user_movie_ratings",
   },
 );
 
 // Mencegah user yang sama memberikan like berulang kali pada movie yang sama (Unique Compound Index)
-UserMovieLikeSchema.index({ user_id: 1, movie_id: 1 }, { unique: true });
+UserMovieRatingSchema.index({ user_id: 1, movie_id: 1 }, { unique: true });
 
-module.exports = model("UserMovieLike", UserMovieLikeSchema);
+module.exports = model("UserMovieRating", UserMovieRatingSchema);

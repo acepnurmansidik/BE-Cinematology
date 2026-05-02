@@ -3,6 +3,10 @@ const { model, Schema } = mongoose;
 
 const WatchHistorySchema = new Schema(
   {
+    is_guest: {
+      type: Boolean,
+      default: false,
+    },
     user_id: {
       type: Schema.Types.ObjectId,
       ref: "User",

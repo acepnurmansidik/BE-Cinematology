@@ -8,31 +8,14 @@ const UserMovieLikeSchema = new Schema(
       required: true,
       default: false,
     },
-    is_allow: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-    // Mengubah location menjadi Object
-    location: {
-      type: {
-        city: { type: String, default: null },
-        country: { type: String, default: null },
-        coordinates: {
-          latitude: { type: Number, default: 0 },
-          longitude: { type: Number, default: 0 },
-        },
-        ip_address: { type: String, default: null },
+    status_like: {
+      type: String,
+      enum: {
+        values: ["like", "dislike", "none"],
+        message: "{VALUE} is not a valid status",
       },
-      _id: false, // Agar tidak membuat _id otomatis di dalam objek location
-      default: {},
+      required: [true, "Status is required!"],
     },
-    is_like: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-
     // References
     user_id: {
       type: Schema.Types.ObjectId,
@@ -44,18 +27,6 @@ const UserMovieLikeSchema = new Schema(
       ref: "Movie",
       required: [true, "Movie ID is required"],
     },
-    genres_name: {
-      type: String,
-      required: [true, "Genre names are required"],
-      trim: true,
-    },
-    genres: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Genre",
-        required: true,
-      },
-    ],
   },
   {
     timestamps: true,

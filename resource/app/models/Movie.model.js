@@ -37,16 +37,16 @@ const MovieSchema = new Schema(
     type: {
       type: String,
       enum: {
-        values: ["movie", "manga"],
+        values: ["movie", "manga", "series"],
         message: "{VALUE} is not a valid type",
       },
       required: [true, "Type is required!"],
     },
-    is_series: {
-      type: Boolean,
-      required: [true, "Series indicator is required!"],
-      default: false,
-    },
+    // is_series: {
+    //   type: Boolean,
+    //   required: [true, "Series indicator is required!"],
+    //   default: false,
+    // },
     continent: {
       type: String,
       required: [true, "Continent is required!"],
@@ -83,8 +83,11 @@ const MovieSchema = new Schema(
     total_chapter: { type: Number, default: 0, min: 0 },
     total_volume: { type: Number, default: 0, min: 0 },
     total_likes: { type: Number, default: 0, min: 0 },
+    total_unlikes: { type: Number, default: 0, min: 0 },
     total_views: { type: Number, default: 0, min: 0 },
     total_watch: { type: Number, default: 0, min: 0 },
+    total_rating: { type: Number, default: 0, min: 0 },
+    total_users_rating: { type: Number, default: 0, min: 0 },
 
     // References - Fixed 'require' typo
     genres_name: {

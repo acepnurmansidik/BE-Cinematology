@@ -18,15 +18,11 @@ const SubscriptionSchema = new Schema(
     },
     start_date: {
       type: Date,
-      required: true,
+      required: false,
     },
     end_date: {
       type: Date,
-      required: true,
-    },
-    payment_gateway_id: {
-      type: String, // ID transaksi dari Midtrans/Stripe/Xendit
-      default: null,
+      required: false,
     },
   },
   { timestamps: true, collection: "subscriptions" },
