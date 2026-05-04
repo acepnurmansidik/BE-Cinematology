@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { model, Schema } = mongoose;
 
-const CityStatMovieLikeSchema = new Schema(
+const CityStatGenreUserSchema = new Schema(
   {
     movie_id: {
       type: Schema.Types.ObjectId,
@@ -29,11 +29,7 @@ const CityStatMovieLikeSchema = new Schema(
       default: {},
     },
 
-    total_users_likes: {
-      type: Number,
-      default: 0,
-    },
-    total_users_unlikes: {
+    total_users_like: {
       type: Number,
       default: 0,
     },
@@ -41,15 +37,15 @@ const CityStatMovieLikeSchema = new Schema(
   {
     timestamps: true,
     versionKey: false,
-    collection: "city_stat_movie_likes",
+    collection: "city_stat_genres",
   },
 );
 
 // Compound Index: Unik berdasarkan film, provinsi (region), dan kota.
 // Ini sangat penting agar statistik tidak duplikat untuk kota yang sama.
-CityStatMovieLikeSchema.index(
+CityStatGenreUserSchema.index(
   { movie_id: 1, regionName: 1, city: 1 },
   { unique: true },
 );
 
-module.exports = model("CityStatMovieLike", CityStatMovieLikeSchema);
+module.exports = model("CityStatGenreUser", CityStatGenreUserSchema);

@@ -1,3 +1,5 @@
+const { Schema, model } = require("mongoose");
+
 const PaymentHistorySchema = new Schema(
   {
     user_id: {

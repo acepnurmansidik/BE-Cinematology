@@ -1,10 +1,11 @@
 const StudioSchema = {
   BodyStudioSchema: {
-    name: "DreamLight Studios",
-    country: "South Korea",
-    continent: "Asia",
+    name: "Universal Pictures",
+    country: "United States",
+    continent: "North America",
     is_adult: false,
-    profile_id: "662e9876543210fedcba5678", // Contoh ObjectId
+    profile_id: "", // Kosong jika belum ada media/logo yang diupload
+    is_new: true,
   },
 };
 

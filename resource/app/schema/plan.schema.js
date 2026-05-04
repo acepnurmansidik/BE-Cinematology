@@ -1,10 +1,17 @@
 const PlanSchema = {
   BodyPlanSchema: {
-    title: "John Doe",
-    price: 19.99,
+    title: "Premium Plan",
+    price: 139000,
     duration_days: 30,
-    features: ["Feature 1", "Feature 2"],
-    active_screens: 1,
+    features: [
+      "Akses ke semua film & series",
+      "Kualitas Video Ultra HD (4K) + HDR",
+      "Nonton di 4 perangkat sekaligus",
+      "Download film untuk offline",
+      "Dukungan audio Dolby Atmos",
+      "Tanpa iklan",
+    ],
+    active_screens: 4,
   },
 };
 

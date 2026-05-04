@@ -1,3 +1,5 @@
+const { Schema, model } = require("mongoose");
+
 const EpisodeLikeSchema = new Schema(
   {
     episode_id: {

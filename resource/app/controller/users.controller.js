@@ -1,22 +1,23 @@
 const { default: mongoose } = require("mongoose");
 const crudServices = require("../../helper/crudService");
-const PaymentHistory = require("../models/paymentHistory.model");
-const PlanModel = require("../models/Plan.model");
-const MovieModel = require("../models/Movie.model");
+const PaymentHistoryModel = require("../models/PaymentHistory.model");
 const SubscriptionModel = require("../models/Subscription.model");
-const UserMovieLikeModel = require("../models/UserMovieLike.model");
-const LogActionModel = require("../models/LogAction.model");
-const UserModel = require("../models/Users.model");
-const CityStatMovieLike = require("../models/CityStatMovieLike.model");
-const EpisodeLikeModel = require("../models/EpisodeLike.model");
-const MovieEpisodeModel = require("../models/MovieEpisode.model");
 const WatchHistoryModel = require("../models/WatchHistory.model");
+const PlanModel = require("../models/Plan.model");
+const LogActionModel = require("../models/LogAction.model");
+const MovieModel = require("../models/Movie.model");
+const UserMovieLikeModel = require("../models/UserMovieLike.model");
+const EpisodeLikeModel = require("../models/EpisodeLike.model");
+const CityStatMovieLikeModel = require("../models/CityStatMovieLike.model");
 const CityStatMovieWatchModel = require("../models/CityStatMovieWatch.model");
+const UserMovieRatingModel = require("../models/UserMovieRating.model");
+const EpisodeRatingModel = require("../models/EpisodeRating.model");
+const CityStatMovieRatingModel = require("../models/CityStatMovieRating.model");
 
 const controller = {};
 
 controller.getAllTransaction = async (req, res, next) => {
-  /* 
+  /*
     #swagger.tags = ['Users']
     #swagger.summary = 'get user transaction for admin'
     #swagger.description = 'get user transaction'
@@ -26,6 +27,7 @@ controller.getAllTransaction = async (req, res, next) => {
   */
   try {
     const query = {};
+    if (req.login.role_name !== "ultraman") query.user_id = req.login._id;
     const populateField = [];
     const { search, type, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
@@ -36,8 +38,8 @@ controller.getAllTransaction = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await PaymentHistory.countDocuments(query);
-    const result = await crudServices.findAllPagination(PaymentHistory, {
+    const page_size = await PaymentHistoryModel.countDocuments(query);
+    const result = await crudServices.findAllPagination(PaymentHistoryModel, {
       query,
       populateField,
       skip,
@@ -50,7 +52,7 @@ controller.getAllTransaction = async (req, res, next) => {
 };
 
 controller.getAllMovieHistoryUser = async (req, res, next) => {
-  /* 
+  /*
     #swagger.tags = ['Users']
     #swagger.summary = 'get user movie history for customer'
     #swagger.description = 'get user movie history'
@@ -88,7 +90,7 @@ controller.createUserTransaction = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   const logActions = [];
-  /* 
+  /*
     #swagger.tags = ['Users']
     #swagger.summary = 'create user transaction'
     #swagger.description = 'create user transaction'
@@ -127,7 +129,7 @@ controller.createUserTransaction = async (req, res, next) => {
       source: SubscriptionModel.collection.collectionName,
     });
 
-    const resultPaymentHistory = await PaymentHistory.create(
+    const resultPaymentHistory = await PaymentHistoryModel.create(
       [
         {
           user_id: userLogin._id,
@@ -142,7 +144,7 @@ controller.createUserTransaction = async (req, res, next) => {
       type: "CREATE",
       target_id: resultPaymentHistory[0]._id, // id of the created document
       after: resultPaymentHistory[0],
-      source: PaymentHistory.collection.collectionName,
+      source: PaymentHistoryModel.collection.collectionName,
     });
 
     await LogActionModel.create(logActions, { session });
@@ -162,7 +164,7 @@ controller.createUserTransaction = async (req, res, next) => {
 };
 
 controller.getUserTransaction = async (req, res, next) => {
-  /* 
+  /*
     #swagger.tags = ['Users']
     #swagger.summary = 'get user transactio for customer'
     #swagger.description = 'get user transaction'
@@ -184,8 +186,8 @@ controller.getUserTransaction = async (req, res, next) => {
 
     query.user_id = req.login._id;
 
-    const page_size = await PaymentHistory.countDocuments(query);
-    const result = await crudServices.findAllPagination(PaymentHistory, {
+    const page_size = await PaymentHistoryModel.countDocuments(query);
+    const result = await crudServices.findAllPagination(PaymentHistoryModel, {
       query,
       populateField,
       skip,
@@ -201,7 +203,7 @@ controller.userPayment = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   const logActions = [];
-  /* 
+  /*
     #swagger.tags = ['Users']
     #swagger.summary = 'user payment'
     #swagger.description = 'user payment'
@@ -213,7 +215,7 @@ controller.userPayment = async (req, res, next) => {
   try {
     const gatewayId = req.params.id;
 
-    const isPaymentHistoryExist = await PaymentHistory.findOne({
+    const isPaymentHistoryExist = await PaymentHistoryModel.findOne({
       payment_gateway_id: gatewayId,
     }).lean();
 
@@ -227,7 +229,7 @@ controller.userPayment = async (req, res, next) => {
 
     const [userPaymentBefore, userSubscribeBefore, userBefore] =
       await Promise.all([
-        PaymentHistory.findOne({ _id: isPaymentHistoryExist._id }).lean(),
+        PaymentHistoryModel.findOne({ _id: isPaymentHistoryExist._id }).lean(),
         SubscriptionModel.findOne({
           _id: isPaymentHistoryExist.subscription_id,
         }).lean(),
@@ -240,7 +242,7 @@ controller.userPayment = async (req, res, next) => {
     // if refunded update subscription status to refunded
 
     // if success update subscription status to active
-    const resultPayment = await PaymentHistory.findOneAndUpdate(
+    const resultPayment = await PaymentHistoryModel.findOneAndUpdate(
       { _id: isPaymentHistoryExist._id },
       { status: "success" },
       { session },
@@ -251,7 +253,7 @@ controller.userPayment = async (req, res, next) => {
       target_id: resultPayment._id, // id of the created document
       before: userPaymentBefore,
       after: resultPayment,
-      source: PaymentHistory.collection.collectionName,
+      source: PaymentHistoryModel.collection.collectionName,
     });
     const resultSubscribe = await SubscriptionModel.findOneAndUpdate(
       { _id: isPaymentHistoryExist.subscription_id },
@@ -308,7 +310,7 @@ controller.userMovieLike = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   const logActions = [];
-  /* 
+  /*
     #swagger.tags = ['Users']
     #swagger.summary = 'user like or unlike movie'
     #swagger.description = 'user like or unlike movie'
@@ -320,14 +322,14 @@ controller.userMovieLike = async (req, res, next) => {
   */
   try {
     const payload = req.body;
-    payload.user_id = req.login._id;
+    if (req.login) payload.guest_id = req.login._id;
     let dEpisodeLike, dMovieLikeModel;
     const dMovie = await MovieModel.findOne({ _id: payload.movie_id })
       .select("_id name is_series type")
       .lean();
 
     const dMovieLikeBefore = await UserMovieLikeModel.findOne({
-      user_id: req.login._id,
+      user_id: payload.guest_id,
       movie_id: payload.movie_id,
     }).lean();
 
@@ -336,10 +338,10 @@ controller.userMovieLike = async (req, res, next) => {
         .status(404)
         .json({ success: false, message: "Movie not found!", data: null });
 
-    if (dMovie.is_series && dMovie.type == "movie") {
+    if (dMovie.type === "series") {
       // cek episode like
       const dEpisodeLikeAfter = await EpisodeLikeModel.findOneAndUpdate(
-        { user_id: req.login._id, movie_id: payload.movie_id },
+        { user_id: payload.guest_id, movie_id: payload.movie_id },
         payload,
         { upsert: true, returnDocument: "after", session },
       );
@@ -347,7 +349,7 @@ controller.userMovieLike = async (req, res, next) => {
 
     // cek userMovie like
     const dMovieLikeAfter = await UserMovieLikeModel.findOneAndUpdate(
-      { user_id: req.login._id, movie_id: payload.movie_id },
+      { user_id: payload.guest_id, movie_id: payload.movie_id },
       payload,
       { upsert: true, returnDocument: "after", session },
     );
@@ -420,7 +422,7 @@ controller.userMovieLike = async (req, res, next) => {
         { session },
       );
       await EpisodeLikeModel.findOneAndUpdate(
-        { _id: payload.episode_id, user_id: req.login._id },
+        { _id: payload.episode_id, user_id: payload.guest_id },
         payload,
         { session, upsert: true },
       );
@@ -433,12 +435,12 @@ controller.userMovieLike = async (req, res, next) => {
     );
 
     await UserMovieLikeModel.findOneAndUpdate(
-      { user_id: payload.user_id, movie_id: payload.movie_id },
+      { user_id: payload.guest_id, movie_id: payload.movie_id },
       payload,
       { session, upsert: true },
     );
 
-    await CityStatMovieLike.findOneAndUpdate(
+    await CityStatMovieLikeModel.findOneAndUpdate(
       {
         movie_id: payload.movie_id,
         city: payload.location_raw.city || "Unknown",
@@ -471,7 +473,7 @@ controller.userMovieWatchHistory = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   const dLogActions = [];
-  /* 
+  /*
     #swagger.tags = ['Users']
     #swagger.summary = 'user watch movie'
     #swagger.description = 'user watch movie'
@@ -483,9 +485,10 @@ controller.userMovieWatchHistory = async (req, res, next) => {
   */
   try {
     const payload = req.body;
-    payload.user_id = req.login._id;
+    if (req.login) payload.guest_id = req.login._id;
+
     const query = {
-      user_id: payload.user_id,
+      user_id: payload.guest_id,
       movie_id: payload.movie_id,
     };
     if (payload.episode_id) query.episode_id = payload.episode_id;
@@ -502,6 +505,17 @@ controller.userMovieWatchHistory = async (req, res, next) => {
 
     if (payload.progress_seconds === dMovieHistoryExist?.duration_seconds) {
       payload.is_completed = true;
+      await CityStatMovieWatchModel.findOneAndUpdate(
+        {
+          movie_id: payload.movie_id,
+          city: payload.location_raw.city || "Unknown",
+          continent: payload.location_raw.continent,
+          country: payload.location_raw.country,
+          regionName: payload.location_raw.regionName,
+        },
+        { status: "completed" },
+        { session },
+      );
     }
     const dMovieHistoryUpdate = await WatchHistoryModel.findOneAndUpdate(
       query,
@@ -513,13 +527,13 @@ controller.userMovieWatchHistory = async (req, res, next) => {
       },
     );
 
-    /* untuk saat ini logiknya counting watch movie di collection WatchHistory dan Movie  
+    /* untuk saat ini logiknya counting watch movie di collection WatchHistory dan Movie
      akan bertambah ketika user pertama kali menonton
     */
     if (dMovieHistoryExist) {
       dLogActions.push({
         type: "UPDATE",
-        target_id: req.login._id, // id of the updated document
+        target_id: payload.guest_id, // id of the updated document
         before: dMovieHistoryExist,
         after: dMovieHistoryUpdate,
         source: WatchHistoryModel.collection.collectionName,
@@ -527,7 +541,7 @@ controller.userMovieWatchHistory = async (req, res, next) => {
     } else {
       dLogActions.push({
         type: "CREATE",
-        target_id: req.login._id, // id of the created document
+        target_id: payload.guest_id, // id of the created document
         after: payload,
         source: WatchHistoryModel.collection.collectionName,
       });
@@ -561,6 +575,114 @@ controller.userMovieWatchHistory = async (req, res, next) => {
       message: "Data has been processed successfully!",
       data: null,
     });
+  } catch (error) {
+    await session.abortTransaction();
+    next(error);
+  } finally {
+    await session.endSession();
+  }
+};
+
+controller.userMovieRating = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  /*
+    #swagger.tags = ['Users']
+    #swagger.summary = 'user rating movie'
+    #swagger.description = 'user rating movie'
+     #swagger.parameters['obj'] = {
+      in: 'body',
+      description: 'Update genre',
+      schema: { $ref: '#/definitions/BodyUserRatingMovieSchema' }
+    }
+  */
+  try {
+    const payload = req.body;
+    const userId = req.login ? req.login._id : payload.guest_id;
+    const movieId = payload.movie_id;
+
+    // 1. Validasi keberadaan Movie
+    const movieExists = await MovieModel.findById(movieId).session(session);
+    if (!movieExists) {
+      await session.abortTransaction();
+      return res
+        .status(404)
+        .json({ success: false, message: "Movie not found!" });
+    }
+
+    // 2. Simpan atau Update Rating User (0-5)
+    await UserMovieRatingModel.findOneAndUpdate(
+      { user_id: userId, movie_id: movieId },
+      {
+        ...payload,
+        user_id: userId,
+        rating: payload.rating, // Tetap simpan skala 0-5 sesuai Schema
+      },
+      { upsert: true, session },
+    );
+
+    // 3. HITUNG ULANG RATA-RATA (AGREGASI)
+    // Kita hitung semua rating yang masuk untuk movie ini
+    const stats = await UserMovieRatingModel.aggregate([
+      { $match: { movie_id: new mongoose.Types.ObjectId(movieId) } },
+      {
+        $group: {
+          _id: "$movie_id",
+          averageRating: { $avg: "$rating" }, // Rata-rata skala 0-5
+          totalVotes: { $sum: 1 },
+        },
+      },
+    ]).session(session);
+
+    if (stats.length > 0) {
+      const { averageRating, totalVotes } = stats[0];
+      //  Hitung skala 10 dengan tetap mempertahankan desimal
+      const ratingTenScale = parseFloat((averageRating * 2).toFixed(1));
+
+      // 4. Update ke Model Movie
+      // Kita simpan rata-rata (0-5) dan jika butuh skala 0-10 bisa dikali 2 di sini
+      await MovieModel.findByIdAndUpdate(
+        movieId,
+        {
+          $set: {
+            vote_rating: totalVotes, // Simpan rata-rata asli di database
+            rating_display: ratingTenScale, // Skala 0-10 untuk tampilan
+          },
+        },
+        { session },
+      );
+    }
+
+    await CityStatMovieRatingModel.findOneAndUpdate(
+      {
+        movie_id: payload.movie_id,
+        city: payload.location_raw.city || "Unknown",
+        continent: payload.location_raw.continent,
+        country: payload.location_raw.country,
+        regionName: payload.location_raw.regionName,
+      },
+      {
+        total_user_rating: totalVotes,
+        total_avg_rating: ratingTenScale, // Simpan rata-rata asli di database
+        ...payload.location_raw,
+        ...payload,
+      },
+      { session, upsert: true },
+    );
+
+    if (payload.episode_id) {
+      // Simpan atau Update Rating untuk Episode jika episode_id ada
+      await EpisodeRatingModel.findOneAndUpdate(
+        { user_id: userId, episode_id: payload.episode_id },
+        { ...payload, user_id: userId },
+        { session, upsert: true },
+      );
+    }
+
+    await session.commitTransaction();
+    res
+      .status(200)
+      .json({ success: true, message: "Rating updated successfully" });
   } catch (error) {
     await session.abortTransaction();
     next(error);

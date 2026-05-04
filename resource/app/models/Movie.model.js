@@ -47,6 +47,11 @@ const MovieSchema = new Schema(
     //   required: [true, "Series indicator is required!"],
     //   default: false,
     // },
+    is_adult: {
+      type: Boolean,
+      required: [true, "Adult content indicator is required!"],
+      default: false,
+    },
     continent: {
       type: String,
       required: [true, "Continent is required!"],
@@ -59,7 +64,7 @@ const MovieSchema = new Schema(
       type: String,
       required: [true, "Code is required!"],
       uppercase: true,
-      trim: true,
+      trim: false,
     },
     release_date: {
       type: Date,
@@ -70,12 +75,12 @@ const MovieSchema = new Schema(
     thumbnail_id: {
       type: Schema.Types.ObjectId,
       ref: "Image",
-      required: [true, "Thumbnail is required!"],
+      required: [false, "Thumbnail is required!"],
     },
     cover_id: {
       type: Schema.Types.ObjectId,
       ref: "Image",
-      required: [true, "Cover image is required!"],
+      required: [false, "Cover image is required!"],
     },
 
     // Counting fields - Use Number type validation
@@ -84,10 +89,10 @@ const MovieSchema = new Schema(
     total_volume: { type: Number, default: 0, min: 0 },
     total_likes: { type: Number, default: 0, min: 0 },
     total_unlikes: { type: Number, default: 0, min: 0 },
-    total_views: { type: Number, default: 0, min: 0 },
     total_watch: { type: Number, default: 0, min: 0 },
+    // rating
+    vote_rating: { type: Number, default: 0, min: 0 },
     total_rating: { type: Number, default: 0, min: 0 },
-    total_users_rating: { type: Number, default: 0, min: 0 },
 
     // References - Fixed 'require' typo
     genres_name: {

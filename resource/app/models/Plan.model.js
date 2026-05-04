@@ -1,3 +1,5 @@
+const { Schema, model } = require("mongoose");
+
 const PlanSchema = new Schema(
   {
     title: {

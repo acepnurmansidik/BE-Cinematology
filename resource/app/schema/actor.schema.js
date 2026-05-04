@@ -1,11 +1,11 @@
 const ActorSchema = {
   BodyActorSchema: {
-    name: "John Doe",
-    birth_date: "1990-05-15",
-    country: "United States",
-    continent: "North America",
-    gender: "Male",
-    avatar_id: "662e1234567890abcdef1234", // Contoh ObjectId
+    name: "Kanna Hashimoto",
+    birth_date: "1999-02-03",
+    country: "Japan",
+    continent: "Asia",
+    gender: "Female",
+    avatar_id: "", // Kosong karena is_new true atau belum upload
     is_new: true,
   },
 };

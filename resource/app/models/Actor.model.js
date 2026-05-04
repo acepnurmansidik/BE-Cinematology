@@ -15,7 +15,7 @@ const ActorSchema = new Schema(
     avatar_id: {
       type: Schema.Types.ObjectId,
       ref: "Image",
-      required: [true, "Avatar ID is required!"],
+      required: [false, "Avatar ID is required!"],
     },
     name: {
       type: String,
@@ -25,11 +25,16 @@ const ActorSchema = new Schema(
     },
     birth_date: {
       type: Date,
-      required: [true, "Birth date is required!"],
+      required: [false, "Birth date is required!"],
     },
-    country: { type: String, required: [true, "Country is required!"] },
-    continent: { type: String, required: [true, "Continent is required!"] },
-    gender: { type: String, enum: ["Male", "Female", "Other"], required: true }, // Boolean diubah ke String agar lebih jelas
+    country: { type: String, required: [false, "Country is required!"] },
+    continent: { type: String, required: [false, "Continent is required!"] },
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Other"],
+      required: false,
+      default: "Other",
+    }, // Boolean diubah ke String agar lebih jelas
     is_new: { type: Boolean, default: false },
     is_delete: { type: Boolean, default: false },
     created_by: { type: Schema.Types.ObjectId, ref: "User", default: null },

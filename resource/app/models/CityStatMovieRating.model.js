@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { model, Schema } = mongoose;
 
-const CityStatGenreeSchema = new Schema(
+const CityStatMovieRatingSchema = new Schema(
   {
     movie_id: {
       type: Schema.Types.ObjectId,
@@ -15,8 +15,10 @@ const CityStatGenreeSchema = new Schema(
     },
     // Field lokasi yang dipetakan dari API
     continent: { type: String, default: null },
+    continentCode: { type: String, default: null },
     country: { type: String, default: "Indonesia" },
     countryCode: { type: String, default: "ID" },
+    region: { type: String, default: null }, // Contoh: Jakarta
     regionName: { type: String, default: null }, // Contoh: Jakarta
     city: { type: String, required: [true, "City wajib diisi"] }, // Contoh: North Jakarta
     timezone: { type: String, default: "Asia/Jakarta" },
@@ -27,7 +29,11 @@ const CityStatGenreeSchema = new Schema(
       default: {},
     },
 
-    total_users_like: {
+    total_user_rating: {
+      type: Number,
+      default: 0,
+    },
+    total_avg_rating: {
       type: Number,
       default: 0,
     },
@@ -35,15 +41,15 @@ const CityStatGenreeSchema = new Schema(
   {
     timestamps: true,
     versionKey: false,
-    collection: "city_stat_genres",
+    collection: "city_stat_movie_ratings",
   },
 );
 
 // Compound Index: Unik berdasarkan film, provinsi (region), dan kota.
 // Ini sangat penting agar statistik tidak duplikat untuk kota yang sama.
-CityStatGenreeSchema.index(
+CityStatMovieRatingSchema.index(
   { movie_id: 1, regionName: 1, city: 1 },
   { unique: true },
 );
 
-module.exports = model("CityStatMovieLike", CityStatGenreeSchema);
+module.exports = model("CityStatMovieRating", CityStatMovieRatingSchema);

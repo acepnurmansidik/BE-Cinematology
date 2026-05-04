@@ -13,10 +13,21 @@ const CityStatMovieWatchSchema = new Schema(
       required: [true, "Nama film wajib diisi"],
       trim: true,
     },
+    status: {
+      type: String,
+      enum: {
+        values: ["on-progress", "completed"],
+        message: "{VALUE} is not a valid status",
+      },
+      default: "on-progress",
+      required: [true, "Status is required!"],
+    },
     // Field lokasi yang dipetakan dari API
     continent: { type: String, default: null },
+    continentCode: { type: String, default: null },
     country: { type: String, default: "Indonesia" },
     countryCode: { type: String, default: "ID" },
+    region: { type: String, default: null }, // Contoh: Jakarta
     regionName: { type: String, default: null }, // Contoh: Jakarta
     city: { type: String, required: [true, "City wajib diisi"] }, // Contoh: North Jakarta
     timezone: { type: String, default: "Asia/Jakarta" },

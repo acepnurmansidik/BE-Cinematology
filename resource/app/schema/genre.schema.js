@@ -1,6 +1,6 @@
 const GenreSchema = {
   BodyGenreSchema: {
-    name: "Science Fiction",
+    name: "Sci-Fi",
     is_adult: false,
   },
 };

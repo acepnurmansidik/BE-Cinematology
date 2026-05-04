@@ -13,7 +13,7 @@ const UserMovieRatingSchema = new Schema(
       required: true,
       default: 0,
       min: 0,
-      max: 10,
+      max: 5,
     },
     // References
     user_id: {

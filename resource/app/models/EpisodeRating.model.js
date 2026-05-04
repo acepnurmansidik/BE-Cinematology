@@ -1,3 +1,5 @@
+const { Schema, model } = require("mongoose");
+
 const EpisodeRatingSchema = new Schema(
   {
     episode_id: {
@@ -11,8 +13,11 @@ const EpisodeRatingSchema = new Schema(
       required: [true, "User ID is required"],
     },
     rating: {
-      type: Boolean,
-      required: true, // true = thumbs up, false = thumbs down
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+      max: 5,
     },
     is_guest: {
       type: Boolean,

@@ -36,7 +36,9 @@ const AuthorizeUserLogin = async (req, res, next) => {
     if (!verifyData) throw new NotFound("Data not register!");
     const userLogin = await UserModel.findOne({
       auth_id: verifyData._id,
-    }).lean();
+    })
+      .populate("role_id")
+      .lean();
 
     // impliment login user
     delete dataValid.iat;
@@ -48,6 +50,8 @@ const AuthorizeUserLogin = async (req, res, next) => {
       auth_id: verifyData._id,
       user_id: userLogin._id,
       device_token: userLogin.device_token,
+      role_id: userLogin.role_id._id,
+      role_name: userLogin.role_id.name,
     };
 
     // next to controller

@@ -1,3 +1,5 @@
+const { Schema, model } = require("mongoose");
+
 const SubscriptionSchema = new Schema(
   {
     user_id: {

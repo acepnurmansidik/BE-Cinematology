@@ -29,7 +29,7 @@ controller.Register = async (req, res, next) => {
       schema: { $ref: '#/definitions/BodyAuthRegisterSchema' }
     }
   */
-    const { token, ...payload, guest_id } = req.body;
+    const { token, guest_id, ...payload } = req.body;
 
     // komparasikan dengna yang ada di database
     const [isAvailable, defaultRole] = await Promise.all([
@@ -66,33 +66,33 @@ controller.Register = async (req, res, next) => {
       { session },
     );
 
-      // update semua data yang memiliki guest_id sama dengan guest_id yang dikirimkan oleh user ketika login
+    // update semua data yang memiliki guest_id sama dengan guest_id yang dikirimkan oleh user ketika login
     if (guest_id) {
       await Promise.all([
         EpisodeLikeModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-          {session}
+          { session },
         ),
         EpisodeRatingModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-           {session}
+          { session },
         ),
         UserMovieLikeModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-           {session}
+          { session },
         ),
         UserMovieRatingModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-           {session}
+          { session },
         ),
         WatchHistoryModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-           {session}
+          { session },
         ),
       ]);
     }
@@ -166,27 +166,27 @@ controller.Login = async (req, res, next) => {
         EpisodeLikeModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-          {session}
+          { session },
         ),
         EpisodeRatingModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-           {session}
+          { session },
         ),
         UserMovieLikeModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-           {session}
+          { session },
         ),
         UserMovieRatingModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-           {session}
+          { session },
         ),
         WatchHistoryModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-           {session}
+          { session },
         ),
       ]);
     }
@@ -201,7 +201,7 @@ controller.Login = async (req, res, next) => {
   } catch (err) {
     await session.abortTransaction();
     next(err);
-  }finally {
+  } finally {
     session.endSession();
   }
 };
