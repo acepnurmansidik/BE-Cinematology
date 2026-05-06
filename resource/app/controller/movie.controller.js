@@ -85,7 +85,7 @@ controller.createMovieAdminOnly = async (req, res, next) => {
       await GenreModel.findOneAndUpdate(
         { slug: genreSlug },
         { name: genre.name, slug: genreSlug },
-        { upsert: true, session },
+        { upsert: true, returnDocument: "after", session },
       );
     }
 
@@ -95,7 +95,7 @@ controller.createMovieAdminOnly = async (req, res, next) => {
       await ActorModel.findOneAndUpdate(
         { slug: actorSlug },
         { name: actor.name, slug: actorSlug },
-        { upsert: true, session },
+        { upsert: true, returnDocument: "after", session },
       );
     }
 
@@ -105,7 +105,7 @@ controller.createMovieAdminOnly = async (req, res, next) => {
       await ActorModel.findOneAndUpdate(
         { slug: actorSlug },
         { name: studio.name, slug: actorSlug },
-        { upsert: true, session },
+        { upsert: true, returnDocument: "after", session },
       );
     }
 
@@ -196,17 +196,17 @@ controller.updateMovieAdminOnly = async (req, res, next) => {
       await GenreModel.findOneAndUpdate(
         { slug: genreSlug },
         { name: genre.name, slug: genreSlug },
-        { upsert: true, session },
+        { upsert: true, returnDocument: "after", session },
       );
     }
 
-    for (const actor of payloa.actors) {
+    for (const actor of payload.actors) {
       if (!actor.is_new) return;
       const actorSlug = globalService.createSlug(actor.name);
       await ActorModel.findOneAndUpdate(
         { slug: actorSlug },
         { name: actor.name, slug: actorSlug },
-        { upsert: true, session },
+        { upsert: true, returnDocument: "after", session },
       );
     }
 
@@ -216,7 +216,7 @@ controller.updateMovieAdminOnly = async (req, res, next) => {
       await ActorModel.findOneAndUpdate(
         { slug: actorSlug },
         { name: studio.name, slug: actorSlug },
-        { upsert: true, session },
+        { upsert: true, returnDocument: "after", session },
       );
     }
 

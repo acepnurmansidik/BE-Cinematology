@@ -12,6 +12,8 @@ const CityStatMovieLikeModel = require("../models/CityStatMovieLike.model");
 const CityStatMovieWatchModel = require("../models/CityStatMovieWatch.model");
 const UserMovieRatingModel = require("../models/UserMovieRating.model");
 const EpisodeRatingModel = require("../models/EpisodeRating.model");
+const CityStatGenreUserModel = require("../models/CityStatGenreUser.model");
+const UserMovieActivityModel = require("../models/UserMovieActivity.model");
 const CityStatMovieRatingModel = require("../models/CityStatMovieRating.model");
 
 const controller = {};
@@ -325,7 +327,7 @@ controller.userMovieLike = async (req, res, next) => {
     if (req.login) payload.guest_id = req.login._id;
     let dEpisodeLike, dMovieLikeModel;
     const dMovie = await MovieModel.findOne({ _id: payload.movie_id })
-      .select("_id name is_series type")
+      .select("_id name is_series type genres_name")
       .lean();
 
     const dMovieLikeBefore = await UserMovieLikeModel.findOne({
@@ -337,6 +339,10 @@ controller.userMovieLike = async (req, res, next) => {
       return res
         .status(404)
         .json({ success: false, message: "Movie not found!", data: null });
+
+    const arrayGenres = dMovie.genres_name
+      .split(", ")
+      .map((item) => item.replaceAll(" ", "-").toLowerCase().trim());
 
     if (dMovie.type === "series") {
       // cek episode like
@@ -354,6 +360,7 @@ controller.userMovieLike = async (req, res, next) => {
       { upsert: true, returnDocument: "after", session },
     );
 
+    const qUserGenreStat = {};
     const dPayloadMovie = {};
     const dPayloadEpisode = {};
     const dPayloadCityMovieLike = {
@@ -365,11 +372,21 @@ controller.userMovieLike = async (req, res, next) => {
       dPayloadMovie.$inc = { total_likes: 1 };
       dPayloadEpisode.$inc = { total_likes: 1 };
       dPayloadCityMovieLike.$inc = { total_users_likes: 1 };
+
+      // user movie like stats update for demographic genre,
+      for (const everyGenre of arrayGenres) {
+        qUserGenreStat[`movie_like_stats.${everyGenre}`] = 1;
+      }
     }
     if (dMovieLikeAfter.status_like == "dislike" && !dMovieLikeBefore) {
       dPayloadMovie.$inc = { total_unlikes: 1 };
       dPayloadEpisode.$inc = { total_unlikes: 1 };
       dPayloadCityMovieLike.$inc = { total_users_unlikes: 1 };
+
+      // user movie like stats update for demographic genre,
+      for (const everyGenre of arrayGenres) {
+        qUserGenreStat[`movie_like_stats.${everyGenre}`] = -1;
+      }
     }
     if (
       dMovieLikeAfter.status_like == "none" &&
@@ -400,6 +417,11 @@ controller.userMovieLike = async (req, res, next) => {
         total_users_likes: 1,
         total_users_unlikes: -1,
       };
+
+      // user movie like stats update for demographic genre,
+      for (const everyGenre of arrayGenres) {
+        qUserGenreStat[`movie_like_stats.${everyGenre}`] = 1;
+      }
     }
     if (
       dMovieLikeAfter.status_like == "dislike" &&
@@ -412,6 +434,11 @@ controller.userMovieLike = async (req, res, next) => {
         total_users_likes: -1,
         total_users_unlikes: 1,
       };
+
+      // user movie like stats update for demographic genre,
+      for (const everyGenre of arrayGenres) {
+        qUserGenreStat[`movie_like_stats.${everyGenre}`] = -1;
+      }
     }
 
     // for logic series movie, coming
@@ -424,8 +451,19 @@ controller.userMovieLike = async (req, res, next) => {
       await EpisodeLikeModel.findOneAndUpdate(
         { _id: payload.episode_id, user_id: payload.guest_id },
         payload,
-        { session, upsert: true },
+        { upsert: true, returnDocument: "after", session },
       );
+    }
+
+    // update user movie like stats for demographic genre
+    if (req.login) {
+      await UserMovieActivityModel.findOneAndUpdate(
+        { user_id: payload.guest_id },
+        { $inc: qUserGenreStat },
+        { session },
+      );
+
+      // next step update at REDIS for real time update user movie like stats for demographic genre
     }
 
     await MovieModel.findOneAndUpdate(
@@ -437,7 +475,7 @@ controller.userMovieLike = async (req, res, next) => {
     await UserMovieLikeModel.findOneAndUpdate(
       { user_id: payload.guest_id, movie_id: payload.movie_id },
       payload,
-      { session, upsert: true },
+      { upsert: true, returnDocument: "after", session },
     );
 
     await CityStatMovieLikeModel.findOneAndUpdate(
@@ -454,6 +492,8 @@ controller.userMovieLike = async (req, res, next) => {
 
     // update city stat movie like
     await LogActionModel.create(logActions, { session });
+
+    // update socket for real time update movie like and demographic genre like stats, coming soon
 
     await session.commitTransaction();
     res.status(200).json({
@@ -485,7 +525,24 @@ controller.userMovieWatchHistory = async (req, res, next) => {
   */
   try {
     const payload = req.body;
+    const qUserGenreStat = {};
+
     if (req.login) payload.guest_id = req.login._id;
+
+    const dMovie = await MovieModel.findOne({ _id: payload.movie_id })
+      .select("_id name is_series type genres_name")
+      .lean();
+
+    if (!dMovie)
+      return res.status(404).json({
+        success: false,
+        message: "Movie not found!",
+        data: null,
+      });
+
+    const arrayGenres = dMovie.genres_name
+      .split(", ")
+      .map((item) => item.replaceAll(" ", "-").toLowerCase().trim());
 
     const query = {
       user_id: payload.guest_id,
@@ -516,15 +573,25 @@ controller.userMovieWatchHistory = async (req, res, next) => {
         { status: "completed" },
         { session },
       );
+
+      if (req.login) {
+        // user movie like stats update for demographic genre,
+        for (const everyGenre of arrayGenres) {
+          qUserGenreStat[`genre_watch_stats.${everyGenre}`] = 1;
+        }
+        await UserMovieActivityModel.findOneAndUpdate(
+          { user_id: payload.guest_id },
+          { $inc: qUserGenreStat },
+          { session },
+        );
+
+        // next step update at REDIS for real time update user movie watch stats for demographic genre
+      }
     }
     const dMovieHistoryUpdate = await WatchHistoryModel.findOneAndUpdate(
       query,
       payload,
-      {
-        upsert: true,
-        returnDocument: "after",
-        session,
-      },
+      { upsert: true, returnDocument: "after", session },
     );
 
     /* untuk saat ini logiknya counting watch movie di collection WatchHistory dan Movie
@@ -569,7 +636,7 @@ controller.userMovieWatchHistory = async (req, res, next) => {
     }
 
     await session.commitTransaction();
-    // logic for user movie watch history, coming soon
+    // update socket for real time update movie like and demographic genre like stats, coming soon
     res.status(200).json({
       success: true,
       message: "Data has been processed successfully!",
@@ -618,7 +685,7 @@ controller.userMovieRating = async (req, res, next) => {
         user_id: userId,
         rating: payload.rating, // Tetap simpan skala 0-5 sesuai Schema
       },
-      { upsert: true, session },
+      { upsert: true, returnDocument: "after", session },
     );
 
     // 3. HITUNG ULANG RATA-RATA (AGREGASI)
@@ -667,7 +734,7 @@ controller.userMovieRating = async (req, res, next) => {
         ...payload.location_raw,
         ...payload,
       },
-      { session, upsert: true },
+      { upsert: true, returnDocument: "after", session },
     );
 
     if (payload.episode_id) {
@@ -675,11 +742,12 @@ controller.userMovieRating = async (req, res, next) => {
       await EpisodeRatingModel.findOneAndUpdate(
         { user_id: userId, episode_id: payload.episode_id },
         { ...payload, user_id: userId },
-        { session, upsert: true },
+        { upsert: true, returnDocument: "after", session },
       );
     }
 
     await session.commitTransaction();
+    // update socket for real time update movie like and demographic genre like stats, coming soon
     res
       .status(200)
       .json({ success: true, message: "Rating updated successfully" });
@@ -688,6 +756,179 @@ controller.userMovieRating = async (req, res, next) => {
     next(error);
   } finally {
     await session.endSession();
+  }
+};
+
+// DEMOGRAPHIC ANALYTIC USER MOVIE LIKE, WATCH, RATING, GENRE PREFERENCE
+controller.getAllDemographicLike = async (req, res, next) => {
+  /*
+    #swagger.tags = ['DEMOGRAPHIC ANALYTIC']
+    #swagger.summary = 'get data user movie like for demographic analytic'
+    #swagger.description = 'get user transaction'
+    #swagger.parameters['search'] = { default: '', description: 'search by value' }
+    #swagger.parameters['limit'] = { default: 10, description: 'limit' }
+    #swagger.parameters['page'] = { default: 1, description: 'page' }
+  */
+  try {
+    const query = {};
+    const populateField = [
+      {
+        path: "movie_id",
+        select: "_id name cover_id",
+        populate: { path: "cover_id", select: "path" },
+      },
+    ];
+    const { search, type, page, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+    if (query.length) query.type = type;
+    const arrFilter = [];
+    if (search) {
+      arrFilter.push({ value: { $regex: search, $options: "i" } });
+    }
+    if (arrFilter.length) query["$or"] = arrFilter;
+
+    const page_size = await CityStatMovieLikeModel.countDocuments(query);
+    const result = await crudServices.findAllPagination(
+      CityStatMovieLikeModel,
+      {
+        query,
+        populateField,
+        skip,
+        limit,
+      },
+    );
+    res.status(200).json({ ...result, page_size, current_page: Number(page) });
+  } catch (err) {
+    next(err);
+  }
+};
+
+controller.getAllDemographicGenre = async (req, res, next) => {
+  /*
+    #swagger.tags = ['DEMOGRAPHIC ANALYTIC']
+    #swagger.summary = 'get data user movie genre for demographic analytic'
+    #swagger.description = 'get user transaction'
+    #swagger.parameters['search'] = { default: '', description: 'search by value' }
+    #swagger.parameters['limit'] = { default: 10, description: 'limit' }
+    #swagger.parameters['page'] = { default: 1, description: 'page' }
+  */
+  try {
+    const query = {};
+    const populateField = [
+      {
+        path: "movie_id",
+        select: "_id name cover_id",
+        populate: { path: "cover_id", select: "path" },
+      },
+    ];
+    const { search, type, page, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+    if (query.length) query.type = type;
+    const arrFilter = [];
+    if (search) {
+      arrFilter.push({ value: { $regex: search, $options: "i" } });
+    }
+    if (arrFilter.length) query["$or"] = arrFilter;
+
+    const page_size = await CityStatGenreUserModel.countDocuments(query);
+    const result = await crudServices.findAllPagination(
+      CityStatGenreUserModel,
+      {
+        query,
+        populateField,
+        skip,
+        limit,
+      },
+    );
+    res.status(200).json({ ...result, page_size, current_page: Number(page) });
+  } catch (err) {
+    next(err);
+  }
+};
+
+controller.getAllDemographicWatch = async (req, res, next) => {
+  /*
+    #swagger.tags = ['DEMOGRAPHIC ANALYTIC']
+    #swagger.summary = 'get data user movie watch for demographic analytic'
+    #swagger.description = 'get user transaction'
+    #swagger.parameters['search'] = { default: '', description: 'search by value' }
+    #swagger.parameters['limit'] = { default: 10, description: 'limit' }
+    #swagger.parameters['page'] = { default: 1, description: 'page' }
+  */
+  try {
+    const query = {};
+    const populateField = [
+      {
+        path: "movie_id",
+        select: "_id name cover_id",
+        populate: { path: "cover_id", select: "path" },
+      },
+    ];
+    const { search, type, page, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+    if (query.length) query.type = type;
+    const arrFilter = [];
+    if (search) {
+      arrFilter.push({ value: { $regex: search, $options: "i" } });
+    }
+    if (arrFilter.length) query["$or"] = arrFilter;
+
+    const page_size = await CityStatMovieWatchModel.countDocuments(query);
+    const result = await crudServices.findAllPagination(
+      CityStatMovieWatchModel,
+      {
+        query,
+        populateField,
+        skip,
+        limit,
+      },
+    );
+    res.status(200).json({ ...result, page_size, current_page: Number(page) });
+  } catch (err) {
+    next(err);
+  }
+};
+
+controller.getAllDemographicRating = async (req, res, next) => {
+  /*
+    #swagger.tags = ['DEMOGRAPHIC ANALYTIC']
+    #swagger.summary = 'get data user movie rating for demographic analytic'
+    #swagger.description = 'get user transaction'
+    #swagger.parameters['search'] = { default: '', description: 'search by value' }
+    #swagger.parameters['limit'] = { default: 10, description: 'limit' }
+    #swagger.parameters['page'] = { default: 1, description: 'page' }
+  */
+  try {
+    const query = {};
+    const populateField = [
+      {
+        path: "movie_id",
+        select: "_id name cover_id",
+        populate: { path: "cover_id", select: "path" },
+      },
+    ];
+    const { search, type, page, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+    if (query.length) query.type = type;
+    const arrFilter = [];
+    if (search) {
+      arrFilter.push({ value: { $regex: search, $options: "i" } });
+    }
+    if (arrFilter.length) query["$or"] = arrFilter;
+
+    const page_size = await CityStatMovieRatingModel.countDocuments(query);
+    const result = await crudServices.findAllPagination(
+      CityStatMovieRatingModel,
+      {
+        query,
+        populateField,
+        skip,
+        limit,
+      },
+    );
+    res.status(200).json({ ...result, page_size, current_page: Number(page) });
+  } catch (err) {
+    next(err);
   }
 };
 

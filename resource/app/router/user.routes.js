@@ -1,13 +1,25 @@
 const router = require("express").Router();
 const controller = require("../controller/users.controller");
 
-// router.get("/transactions", controller.getAllTransaction);
-// router.post("/:planId/transaction", controller.createUserTransaction);
-// router.put("/:gatewayId/payment", controller.userPayment);
-// router.get("/history-transaction", controller.getUserTransaction);
-// router.put("/like-movie", controller.userMovieLike);
-// router.put("/watch-movie", controller.userMovieWatchHistory);
-// router.get("/history-watch-movie", controller.getAllMovieHistoryUser);
-// router.get("/rating-movie", controller.getAllMovieHistoryUser);
+// uesr make transactions
+router.get("/transactions", controller.getAllTransaction);
+router.post("/:planId/transaction", controller.createUserTransaction);
+router.put("/:gatewayId/payment", controller.userPayment);
+router.get("/history-transaction", controller.getUserTransaction);
+
+// history action user with movies
+router.get("/history-watch-movie", controller.getAllMovieHistoryUser);
+
+// user make actions with movies
+router.get("/rating-movie", controller.userMovieRating);
+router.put("/like-movie", controller.userMovieLike);
+router.put("/watch-movie", controller.userMovieWatchHistory);
+
+// FOR ADMIN ONLY =========================================================
+// demographic analytic
+router.get("/demographic-genre", controller.getAllDemographicGenre);
+router.get("/demographic-like", controller.getAllDemographicLike);
+router.get("/demographic-watch", controller.getAllDemographicWatch);
+router.get("/demographic-rating", controller.getAllDemographicRating);
 
 module.exports = router;
