@@ -9,7 +9,7 @@ const AuthorizeUserLogin = require("../resource/middleware/authentification");
 const studioRouter = require("../resource/app/router/studio.routes");
 const genreRouter = require("../resource/app/router/genre.routes");
 const actorRouter = require("../resource/app/router/actor.routes");
-const authorRouter = require("../resource/app/router/authors.route");
+const authorRouter = require("../resource/app/router/author.route");
 const userRouter = require("../resource/app/router/user.routes");
 const movieRouter = require("../resource/app/router/movie.routes");
 
