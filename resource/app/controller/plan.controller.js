@@ -50,7 +50,7 @@ controller.createPlan = async (req, res, next) => {
   try {
     const payload = req.body;
 
-    const result = await crudServices.create(PlanModel, payload);
+    const result = await crudServices.create(PlanModel, { data: payload });
     res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -71,6 +71,7 @@ controller.updatePlan = async (req, res, next) => {
   */
   try {
     const { id } = req.params;
+    const payload = req.body;
 
     const isExist = await PlanModel.findOne({ _id: id }).lean();
     if (!isExist)
