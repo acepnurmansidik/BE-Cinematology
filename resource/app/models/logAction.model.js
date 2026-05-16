@@ -21,7 +21,16 @@ const LogActionModel = Schema(
       type: Schema.Types.Mixed,
     },
   },
-  { timestamps: true, versionKey: false, collection: "log_actions" },
+  {
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    versionKey: false,
+    collection: "log_actions",
+  },
 );
 
 module.exports = model("LogAction", LogActionModel);

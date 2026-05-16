@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const globalService = require("../../helper/global-func");
+const { default: uniqueValidator } = require("mongoose-unique-validator");
 const { model, Schema } = mongoose;
 
 const RoleSchema = new Schema(
@@ -36,11 +37,20 @@ const RoleSchema = new Schema(
     },
   },
   {
-    timestamps: true,
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
     versionKey: false,
-    collection: "role",
+    collection: "roles",
   },
 );
+
+RoleSchema.plugin(uniqueValidator, {
+  message: "Role name must be unique!",
+});
 
 // Pre-save hook
 RoleSchema.pre("validate", function (next) {
@@ -48,7 +58,6 @@ RoleSchema.pre("validate", function (next) {
   if (!this.slug && this.name) {
     this.slug = globalService.createSlug(this.name); // Pastikan fungsi createSlug mengembalikan slug yang benar
   }
-  next();
 });
 
 module.exports = model("Role", RoleSchema);

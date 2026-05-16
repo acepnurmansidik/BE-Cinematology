@@ -12,7 +12,7 @@ const CityStatMovieLikeModel = require("../models/CityStatMovieLike.model");
 const CityStatMovieWatchModel = require("../models/CityStatMovieWatch.model");
 const UserMovieRatingModel = require("../models/UserMovieRating.model");
 const EpisodeRatingModel = require("../models/EpisodeRating.model");
-const CityStatGenreUserModel = require("../models/CityStatGenreUser.model");
+const CityStatMovieGenreModel = require("../models/CityStatMovieGenre.model");
 const UserMovieActivityModel = require("../models/UserMovieActivity.model");
 const CityStatMovieRatingModel = require("../models/CityStatMovieRating.model");
 
@@ -308,6 +308,7 @@ controller.userPayment = async (req, res, next) => {
   }
 };
 
+// USER ACTION WITH MOVIE LIKE, WATCH, RATING
 controller.userMovieLike = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -830,9 +831,9 @@ controller.getAllDemographicGenre = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await CityStatGenreUserModel.countDocuments(query);
+    const page_size = await CityStatMovieGenreModel.countDocuments(query);
     const result = await crudServices.findAllPagination(
-      CityStatGenreUserModel,
+      CityStatMovieGenreModel,
       {
         query,
         populateField,

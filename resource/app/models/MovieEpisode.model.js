@@ -31,7 +31,16 @@ const EpisodeSchema = new Schema(
       },
     ],
   },
-  { timestamps: true, collection: "movie_episodes", versionKey: false },
+  {
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    collection: "movie_episodes",
+    versionKey: false,
+  },
 );
 
 // --- OTOMATISASI SLUG DARI TITLE ---
@@ -39,7 +48,6 @@ EpisodeSchema.pre("validate", function (next) {
   if (!this.slug && this.title) {
     this.slug = globalService.createSlug(this.title); // Pastikan fungsi createSlug mengembalikan slug yang benar
   }
-  next();
 });
 
 // Indexing untuk pencarian cepat berdasarkan movie dan urutan episode

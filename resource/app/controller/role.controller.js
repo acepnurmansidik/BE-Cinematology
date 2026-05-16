@@ -53,17 +53,6 @@ controller.createRole = async (req, res, next) => {
     payload.name = payload.name.toLowerCase();
     payload.slug = globalService.createSlug(payload.name);
 
-    const isExist = await RoleModel.findOne({ slug: payload.slug });
-
-    if (isExist)
-      return res.status(400).json({
-        code: 400,
-        success: false,
-        message: "Role already exists!",
-        data: "",
-      });
-    console.log(payload);
-
     const result = await crudServices.create(RoleModel, { data: payload });
     res.status(201).json({
       code: 201,
@@ -93,18 +82,6 @@ controller.updateRole = async (req, res, next) => {
     const payload = req.body;
     payload.name = payload.name.toLowerCase();
     payload.slug = globalService.createSlug(payload.value);
-
-    const isExist = await crudServices.findOne(RoleModel, {
-      query: { _id: { $ne: id }, slug: payload.slug },
-    });
-
-    if (isExist)
-      return res.status(400).json({
-        code: 400,
-        success: false,
-        message: "Role already exists!",
-        data: "",
-      });
 
     const result = await crudServices.update(RoleModel, { id, data: payload });
     res.status(200).json({

@@ -41,7 +41,7 @@ const MovieSchema = {
         name: "Bryce Dallas Howard",
         is_new: false,
       },
-      { _id: "", name: "DeWanda Wise", is_new: true },
+      { _id: "", name: "Chris Pratt", is_new: true },
     ],
 
     studios: [

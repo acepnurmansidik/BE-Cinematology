@@ -30,7 +30,15 @@ const SeasonSchema = new Schema(
       unique: true,
     },
   },
-  { timestamps: true, collection: "movie_seasons" },
+  {
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    collection: "movie_seasons",
+  },
 );
 
 // Auto-generate slug for Season
@@ -38,7 +46,6 @@ SeasonSchema.pre("validate", function (next) {
   if (!this.slug && this.title) {
     this.slug = globalService.createSlug(this.title); // Pastikan fungsi createSlug mengembalikan slug yang benar
   }
-  next();
 });
 
 module.exports = model("Season", SeasonSchema);

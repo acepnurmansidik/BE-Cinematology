@@ -14,7 +14,12 @@ const RoleActorMovieSchema = new Schema(
     avatar_id: { type: Schema.Types.ObjectId, ref: "Image", required: true },
   },
   {
-    timestamps: true,
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
     versionKey: false,
     collection: "role_actor_movies",
   },

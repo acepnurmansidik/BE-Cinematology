@@ -27,7 +27,15 @@ const SubscriptionSchema = new Schema(
       required: false,
     },
   },
-  { timestamps: true, collection: "subscriptions" },
+  {
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    collection: "subscriptions",
+  },
 );
 
 module.exports = model("Subscription", SubscriptionSchema);

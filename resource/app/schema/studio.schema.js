@@ -5,7 +5,6 @@ const StudioSchema = {
     continent: "North America",
     is_adult: false,
     profile_id: "", // Kosong jika belum ada media/logo yang diupload
-    is_new: true,
   },
 };
 

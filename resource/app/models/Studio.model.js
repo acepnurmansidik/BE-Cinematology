@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const globalService = require("../../helper/global-func");
+const { default: uniqueValidator } = require("mongoose-unique-validator");
 const { model, Schema } = mongoose;
 
 const StudioSchema = new Schema(
@@ -35,7 +36,11 @@ const StudioSchema = new Schema(
     profile_id: {
       type: Schema.Types.ObjectId,
       ref: "Image",
-      required: true,
+      default: null,
+    },
+    is_new: {
+      type: Boolean,
+      default: false,
     },
 
     // separated by comma, example: "admin, user"
@@ -56,11 +61,20 @@ const StudioSchema = new Schema(
     },
   },
   {
-    timestamps: true,
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
     versionKey: false,
-    collection: "genre",
+    collection: "studios",
   },
 );
+
+StudioSchema.plugin(uniqueValidator, {
+  message: "Studio name must be unique!",
+});
 
 // Pre-save hook
 StudioSchema.pre("validate", function (next) {
@@ -68,7 +82,6 @@ StudioSchema.pre("validate", function (next) {
   if (!this.slug && this.name) {
     this.slug = globalService.createSlug(this.name); // Pastikan fungsi createSlug mengembalikan slug yang benar
   }
-  next();
 });
 
 module.exports = model("Studio", StudioSchema);

@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const globalService = require("../../helper/global-func");
+const { default: uniqueValidator } = require("mongoose-unique-validator");
 const { model, Schema } = mongoose;
 
 const GenreSchema = new Schema(
@@ -16,6 +17,10 @@ const GenreSchema = new Schema(
       required: [true, "Name is required!"],
       trim: true,
     },
+    is_new: {
+      type: Boolean,
+      default: false,
+    },
     is_adult: {
       type: Boolean,
       default: false,
@@ -27,12 +32,20 @@ const GenreSchema = new Schema(
   },
   {
     // Menggunakan timestamps: true akan otomatis membuat createdAt dan updatedAt
-    timestamps: true,
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
     versionKey: false,
     collection: "genres",
   },
 );
 
+GenreSchema.plugin(uniqueValidator, {
+  message: "Name must be unique!",
+});
 // --- MIDDLEWARE / HOOKS ---
 // Digunakan untuk otomatisasi pembuatan slug sebelum validasi data
 GenreSchema.pre("validate", function (next) {
@@ -40,7 +53,6 @@ GenreSchema.pre("validate", function (next) {
     // Memastikan globalService.createSlug tersedia dan bekerja dengan baik
     this.slug = globalService.createSlug(this.name);
   }
-  next();
 });
 
 // --- EXPORT MODEL ---

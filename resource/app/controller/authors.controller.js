@@ -1,12 +1,12 @@
 const crudServices = require("../../helper/crudService");
 const globalService = require("../../helper/global-func");
-const GenreModel = require("../models/Genre.model");
+const AuthorModel = require("../models/Author.model");
 const controller = {};
 
-controller.getAllGenre = async (req, res, next) => {
+controller.getAllAuthor = async (req, res, next) => {
   /*
-    #swagger.tags = ['GENRE']
-    #swagger.summary = 'Genre'
+    #swagger.tags = ['AUTHORS']
+    #swagger.summary = 'Author'
     #swagger.description = 'untuk referensi group'
     #swagger.parameters['search'] = { default: '', description: 'search by value' }
     #swagger.parameters['limit'] = { default: 10, description: 'limit' }
@@ -24,8 +24,8 @@ controller.getAllGenre = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await GenreModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(GenreModel, {
+    const page_size = await AuthorModel.countDocuments(query);
+    const result = await crudServices.findAllPagination(AuthorModel, {
       query,
       populateField,
       skip,
@@ -37,59 +37,38 @@ controller.getAllGenre = async (req, res, next) => {
   }
 };
 
-controller.createGenre = async (req, res, next) => {
+controller.createAuthor = async (req, res, next) => {
   try {
     /*
-    #swagger.tags = ['GENRE']
-    #swagger.summary = 'Genre'
+    #swagger.tags = ['AUTHORS']
+    #swagger.summary = 'Author'
     #swagger.description = 'untuk referensi group'
     #swagger.parameters['obj'] = {
       in: 'body',
-      description: 'Create genre',
-      schema: { $ref: '#/definitions/BodyGenreSchema' }
+      description: 'Create author',
+      schema: { $ref: '#/definitions/BodyAuthorSchema' }
     }
   */
     const payload = req.body;
     payload.name = payload.name.toLowerCase();
     payload.slug = globalService.createSlug(payload.name);
 
-    const data = await crudServices.create(GenreModel, {
-      data: payload,
-    });
+    const isExist = await AuthorModel.findOne({ slug: payload.slug });
+
+    if (isExist)
+      return res.status(400).json({
+        code: 400,
+        success: false,
+        message: "Author already exists!",
+        data: "",
+      });
+    console.log(payload);
+
+    const result = await crudServices.create(AuthorModel, { data: payload });
     res.status(201).json({
       code: 201,
       success: true,
-      message: "Genre created successfully!",
-      data,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-controller.updateGenre = async (req, res, next) => {
-  try {
-    /*
-    #swagger.tags = ['GENRE']
-    #swagger.summary = 'Genre'
-    #swagger.description = 'untuk referensi group'
-    #swagger.parameters['id'] = { description: 'id genre' }
-    #swagger.parameters['obj'] = {
-      in: 'body',
-      description: 'Update genre',
-      schema: { $ref: '#/definitions/BodyGenreSchema' }
-    }
-  */
-    const { id } = req.params;
-    const payload = req.body;
-    payload.name = payload.name.toLowerCase();
-    payload.slug = globalService.createSlug(payload.value);
-
-    const result = await crudServices.update(GenreModel, { id, data: payload });
-    res.status(200).json({
-      code: 200,
-      success: true,
-      message: "Genre updated successfully!",
+      message: "Author created successfully!",
       data: result,
     });
   } catch (err) {
@@ -97,20 +76,65 @@ controller.updateGenre = async (req, res, next) => {
   }
 };
 
-controller.deleteGenre = async (req, res, next) => {
+controller.updateAuthor = async (req, res, next) => {
   try {
     /*
-    #swagger.tags = ['GENRE']
-    #swagger.summary = 'Genre'
+    #swagger.tags = ['AUTHORS']
+    #swagger.summary = 'Author'
     #swagger.description = 'untuk referensi group'
-    #swagger.parameters['id'] = { description: 'id genre' }
+    #swagger.parameters['id'] = { description: 'id author' }
+    #swagger.parameters['obj'] = {
+      in: 'body',
+      description: 'Update author',
+      schema: { $ref: '#/definitions/BodyAuthorSchema' }
+    }
   */
     const { id } = req.params;
-    const result = await crudServices.delete(GenreModel, { id });
+    const payload = req.body;
+    payload.name = payload.name.toLowerCase();
+    payload.slug = globalService.createSlug(payload.value);
+
+    const isExist = await crudServices.findOne(AuthorModel, {
+      query: { _id: { $ne: id }, slug: payload.slug },
+    });
+
+    if (isExist)
+      return res.status(400).json({
+        code: 400,
+        success: false,
+        message: "Author already exists!",
+        data: "",
+      });
+
+    const result = await crudServices.update(AuthorModel, {
+      id,
+      data: payload,
+    });
     res.status(200).json({
       code: 200,
       success: true,
-      message: "Genre deleted successfully!",
+      message: "Author updated successfully!",
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+controller.deleteAuthor = async (req, res, next) => {
+  try {
+    /*
+    #swagger.tags = ['AUTHORS']
+    #swagger.summary = 'Author'
+    #swagger.description = 'untuk referensi group'
+    #swagger.parameters['id'] = { description: 'id author' }
+  */
+    const { id } = req.params;
+    const result = await crudServices.delete(AuthorModel, { id });
+    res.status(200).json({
+      code: 200,
+      success: true,
+      message: "Author deleted successfully!",
       data: result,
     });
   } catch (err) {

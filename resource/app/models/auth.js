@@ -24,7 +24,16 @@ const AuthModel = Schema(
       default: false,
     },
   },
-  { timestamps: true, versionKey: false, collection: "auth_users" },
+  {
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    versionKey: false,
+    collection: "auth_users",
+  },
 );
 
 module.exports = model("AuthUser", AuthModel);

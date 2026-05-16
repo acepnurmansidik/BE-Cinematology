@@ -1,5 +1,5 @@
-const ActorSchema = {
-  BodyActorSchema: {
+const AuthorSchema = {
+  BodyAuthorSchema: {
     name: "Kanna Hashimoto",
     birth_date: "1999-02-03",
     country: "Japan",
@@ -9,4 +9,4 @@ const ActorSchema = {
   },
 };
 
-module.exports = ActorSchema;
+module.exports = AuthorSchema;

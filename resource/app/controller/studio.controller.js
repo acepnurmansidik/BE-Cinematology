@@ -53,17 +53,6 @@ controller.createStudio = async (req, res, next) => {
     payload.name = payload.name.toLowerCase();
     payload.slug = globalService.createSlug(payload.name);
 
-    const isExist = await StudioModel.findOne({ slug: payload.slug });
-
-    if (isExist)
-      return res.status(400).json({
-        code: 400,
-        success: false,
-        message: "Studio already exists!",
-        data: "",
-      });
-    console.log(payload);
-
     const result = await crudServices.create(StudioModel, { data: payload });
     res.status(201).json({
       code: 201,
@@ -93,18 +82,6 @@ controller.updateStudio = async (req, res, next) => {
     const payload = req.body;
     payload.name = payload.name.toLowerCase();
     payload.slug = globalService.createSlug(payload.value);
-
-    const isExist = await crudServices.findOne(StudioModel, {
-      query: { _id: { $ne: id }, slug: payload.slug },
-    });
-
-    if (isExist)
-      return res.status(400).json({
-        code: 400,
-        success: false,
-        message: "Studio already exists!",
-        data: "",
-      });
 
     const result = await crudServices.update(StudioModel, {
       id,

@@ -21,7 +21,12 @@ const UserMovieActivitySchema = Schema(
     },
   },
   {
-    timestamps: true,
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
     versionKey: false,
     collection: "user_movie_activities",
   },

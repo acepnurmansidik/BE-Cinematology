@@ -3,7 +3,7 @@ const globalService = require("../../helper/global-func");
 const { default: uniqueValidator } = require("mongoose-unique-validator");
 const { model, Schema } = mongoose;
 
-const ActorSchema = new Schema(
+const AuthorSchema = new Schema(
   {
     slug: {
       type: String,
@@ -16,6 +16,7 @@ const ActorSchema = new Schema(
     avatar_id: {
       type: Schema.Types.ObjectId,
       ref: "Image",
+      required: [false, "Avatar ID is required!"],
       default: null,
     },
     name: {
@@ -52,18 +53,18 @@ const ActorSchema = new Schema(
       updatedAt: "updated_at",
     },
     versionKey: false,
-    collection: "actors", // Sebelumnya "genre"
+    collection: "authors", // Sebelumnya "genre"
   },
 );
 
-ActorSchema.plugin(uniqueValidator, {
-  message: "Actor name must be unique!",
+AuthorSchema.plugin(uniqueValidator, {
+  message: "Author name must be unique!",
 });
 
-ActorSchema.pre("validate", function (next) {
+AuthorSchema.pre("validate", function (next) {
   if (!this.slug && this.name) {
     this.slug = globalService.createSlug(this.name);
   }
 });
 
-module.exports = model("Actor", ActorSchema); // Sebelumnya "Genre"
+module.exports = model("Author", AuthorSchema); // Sebelumnya "Genre"

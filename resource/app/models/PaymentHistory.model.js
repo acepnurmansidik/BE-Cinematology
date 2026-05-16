@@ -53,7 +53,15 @@ const PaymentHistorySchema = new Schema(
       default: null,
     },
   },
-  { timestamps: true, collection: "payment_history" },
+  {
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    collection: "payment_history",
+  },
 );
 
 module.exports = model("PaymentHistory", PaymentHistorySchema);

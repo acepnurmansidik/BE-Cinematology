@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const globalService = require("../../helper/global-func");
+const { default: uniqueValidator } = require("mongoose-unique-validator");
 const { model, Schema } = mongoose;
 
 const MovieSchema = new Schema(
   {
     slug: {
       type: String,
-      minlength: [3, "Slug must be at least 3 characters long"],
       required: [true, "Slug is required!"],
       unique: true,
       trim: true,
@@ -28,8 +28,10 @@ const MovieSchema = new Schema(
     },
     status: {
       type: String,
+      default: "released",
       enum: {
-        values: ["on-going", "completed"],
+        // PERBAIKAN DI SINI: Tambahkan "released" ke dalam daftar enum values
+        values: ["on-going", "completed", "released", "upcoming"],
         message: "{VALUE} is not a valid status",
       },
       required: [true, "Status is required!"],
@@ -42,11 +44,6 @@ const MovieSchema = new Schema(
       },
       required: [true, "Type is required!"],
     },
-    // is_series: {
-    //   type: Boolean,
-    //   required: [true, "Series indicator is required!"],
-    //   default: false,
-    // },
     is_adult: {
       type: Boolean,
       required: [true, "Adult content indicator is required!"],
@@ -70,31 +67,27 @@ const MovieSchema = new Schema(
       type: Date,
       required: [true, "Release date is required!"],
     },
-
-    // Fixed typo: 'require' should be 'required'
     thumbnail_id: {
       type: Schema.Types.ObjectId,
       ref: "Image",
-      required: [false, "Thumbnail is required!"],
+      required: false,
+      default: null,
     },
     cover_id: {
       type: Schema.Types.ObjectId,
       ref: "Image",
-      required: [false, "Cover image is required!"],
+      required: false,
+      default: null,
     },
-
-    // Counting fields - Use Number type validation
     total_episode: { type: Number, default: 0, min: 0 },
     total_chapter: { type: Number, default: 0, min: 0 },
     total_volume: { type: Number, default: 0, min: 0 },
     total_likes: { type: Number, default: 0, min: 0 },
     total_unlikes: { type: Number, default: 0, min: 0 },
     total_watch: { type: Number, default: 0, min: 0 },
-    // rating
     vote_rating: { type: Number, default: 0, min: 0 },
     total_rating: { type: Number, default: 0, min: 0 },
 
-    // References - Fixed 'require' typo
     genres_name: {
       type: String,
       required: [true, "Genre names string is required!"],
@@ -139,7 +132,6 @@ const MovieSchema = new Schema(
         required: true,
       },
     ],
-
     is_delete: {
       type: Boolean,
       default: false,
@@ -156,22 +148,23 @@ const MovieSchema = new Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
     versionKey: false,
     collection: "movies",
   },
 );
 
-// Indexing for faster searches
-MovieSchema.index({ title: "text", genres_name: "text" });
+MovieSchema.plugin(uniqueValidator, {
+  message: "Movie title must be unique!",
+});
 
-// Pre-save hook
 MovieSchema.pre("validate", function (next) {
-  // Jika slug tidak diisi, buat dari title
   if (!this.slug && this.title) {
-    this.slug = globalService.createSlug(this.title); // Pastikan fungsi createSlug mengembalikan slug yang benar
+    this.slug = globalService.createSlug(this.title);
   }
-  next();
 });
 
 module.exports = model("Movie", MovieSchema);

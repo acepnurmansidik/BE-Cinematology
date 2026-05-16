@@ -26,7 +26,16 @@ const PlanSchema = new Schema(
       default: 1,
     },
   },
-  { timestamps: true, collection: "plans", versionKey: false },
+  {
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    collection: "plans",
+    versionKey: false,
+  },
 );
 
 module.exports = model("Plan", PlanSchema);

@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { model, Schema } = mongoose;
 
-const CityStatGenreUserSchema = new Schema(
+const CityStatMovieGenreSchema = new Schema(
   {
     movie_id: {
       type: Schema.Types.ObjectId,
@@ -35,17 +35,22 @@ const CityStatGenreUserSchema = new Schema(
     },
   },
   {
-    timestamps: true,
+    // PERBAIKAN DI SINI:
+    // Mengubah default nama timestamps Mongoose menjadi snake_case
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
     versionKey: false,
-    collection: "city_stat_genres",
+    collection: "city_stat_movie_genres",
   },
 );
 
 // Compound Index: Unik berdasarkan film, provinsi (region), dan kota.
 // Ini sangat penting agar statistik tidak duplikat untuk kota yang sama.
-CityStatGenreUserSchema.index(
+CityStatMovieGenreSchema.index(
   { movie_id: 1, regionName: 1, city: 1 },
   { unique: true },
 );
 
-module.exports = model("CityStatGenreUser", CityStatGenreUserSchema);
+module.exports = model("CityStatMovieGenre", CityStatMovieGenreSchema);
