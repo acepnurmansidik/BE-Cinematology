@@ -28,6 +28,7 @@ const indexRouter = require("./routes");
 const notFoundMiddleware = require("./resource/middleware/not-found");
 const handleErrorMiddleware = require("./resource/middleware/handle-error");
 const { setupLogger } = require("./resource/helper/global-func");
+const runSeeder = require("./resource/seed");
 
 // membuat variabel v1
 const v1 = "/api/v1";
@@ -97,6 +98,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+runSeeder();
 // gunakan categories router
 app.use(v1, indexRouter);
 

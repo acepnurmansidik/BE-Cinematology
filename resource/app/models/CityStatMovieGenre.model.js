@@ -3,16 +3,12 @@ const { model, Schema } = mongoose;
 
 const CityStatMovieGenreSchema = new Schema(
   {
-    movie_id: {
+    genre_id: {
       type: Schema.Types.ObjectId,
-      ref: "Movie",
-      required: [true, "Movie ID wajib diisi"],
+      ref: "Genre",
+      required: [true, "Genre ID wajib diisi"],
     },
-    movie_name: {
-      type: String,
-      required: [true, "Nama film wajib diisi"],
-      trim: true,
-    },
+
     // Field lokasi yang dipetakan dari API
     continent: { type: String, default: null },
     continentCode: { type: String, default: null },
@@ -29,7 +25,11 @@ const CityStatMovieGenreSchema = new Schema(
       default: {},
     },
 
-    total_users_like: {
+    total_genre_likes: {
+      type: Number,
+      default: 0,
+    },
+    total_genre_unlikes: {
       type: Number,
       default: 0,
     },

@@ -1,4 +1,9 @@
 const { default: mongoose } = require("mongoose");
+const {
+  getOrSetCache,
+  clearCache,
+  setCache,
+} = require("../../helper/redis-cache");
 const crudServices = require("../../helper/crudService");
 const PaymentHistoryModel = require("../models/PaymentHistory.model");
 const SubscriptionModel = require("../models/Subscription.model");
@@ -14,6 +19,7 @@ const UserMovieRatingModel = require("../models/UserMovieRating.model");
 const EpisodeRatingModel = require("../models/EpisodeRating.model");
 const CityStatMovieGenreModel = require("../models/CityStatMovieGenre.model");
 const UserMovieActivityModel = require("../models/UserMovieActivity.model");
+const EpisodeModel = require("../models/Episode.model");
 const CityStatMovieRatingModel = require("../models/CityStatMovieRating.model");
 
 const controller = {};
@@ -325,10 +331,20 @@ controller.userMovieLike = async (req, res, next) => {
   */
   try {
     const payload = req.body;
-    if (req.login) payload.guest_id = req.login._id;
+
+    if (req.login) {
+      payload.guest_id = req.login.user_id;
+      payload.user_id = req.login.user_id;
+      payload.is_guest = false;
+    }
+    if (payload.guest_id && !req.login) {
+      payload.user_id = payload.guest_id;
+      payload.guest_id = payload.guest_id;
+      payload.is_guest = true;
+    }
     let dEpisodeLike, dMovieLikeModel;
     const dMovie = await MovieModel.findOne({ _id: payload.movie_id })
-      .select("_id name is_series type genres_name")
+      .select("_id title is_series type genres_name genres")
       .lean();
 
     const dMovieLikeBefore = await UserMovieLikeModel.findOne({
@@ -368,25 +384,31 @@ controller.userMovieLike = async (req, res, next) => {
       location_raw: payload.location_raw,
       ...payload.location_raw,
     };
+    const dPayloadCityMovieGenreLike = {
+      location_raw: payload.location_raw,
+      ...payload.location_raw,
+    };
     // logika penentuan increment dan decrement total like dan unlike
     if (dMovieLikeAfter.status_like == "like" && !dMovieLikeBefore) {
       dPayloadMovie.$inc = { total_likes: 1 };
       dPayloadEpisode.$inc = { total_likes: 1 };
-      dPayloadCityMovieLike.$inc = { total_users_likes: 1 };
+      dPayloadCityMovieLike.$inc = { total_genre_likes: 1 };
+      dPayloadCityMovieGenreLike.$inc = { total_genre_likes: 1 };
 
       // user movie like stats update for demographic genre,
       for (const everyGenre of arrayGenres) {
-        qUserGenreStat[`movie_like_stats.${everyGenre}`] = 1;
+        qUserGenreStat[`${everyGenre.replaceAll("-", "_")}`] = 1;
       }
     }
     if (dMovieLikeAfter.status_like == "dislike" && !dMovieLikeBefore) {
       dPayloadMovie.$inc = { total_unlikes: 1 };
       dPayloadEpisode.$inc = { total_unlikes: 1 };
       dPayloadCityMovieLike.$inc = { total_users_unlikes: 1 };
+      dPayloadCityMovieGenreLike.$inc = { total_genre_unlikes: 1 };
 
       // user movie like stats update for demographic genre,
       for (const everyGenre of arrayGenres) {
-        qUserGenreStat[`movie_like_stats.${everyGenre}`] = -1;
+        qUserGenreStat[`${everyGenre.replaceAll("-", "_")}`] = -1;
       }
     }
     if (
@@ -396,7 +418,8 @@ controller.userMovieLike = async (req, res, next) => {
     ) {
       // dPayloadMovie.$inc = { total_likes: -1 };
       dPayloadEpisode.$inc = { total_likes: -1 };
-      dPayloadCityMovieLike.$inc = { total_users_likes: -1 };
+      dPayloadCityMovieLike.$inc = { total_genre_likes: -1 };
+      dPayloadCityMovieGenreLike.$inc = { total_genre_likes: -1 };
     }
     if (
       dMovieLikeAfter.status_like == "none" &&
@@ -406,6 +429,7 @@ controller.userMovieLike = async (req, res, next) => {
       // dPayloadMovie.$inc = { total_unlikes: -1 };
       dPayloadEpisode.$inc = { total_unlikes: -1 };
       dPayloadCityMovieLike.$inc = { total_users_unlikes: -1 };
+      dPayloadCityMovieGenreLike.$inc = { total_genre_unlikes: -1 };
     }
     if (
       dMovieLikeAfter.status_like == "like" &&
@@ -415,13 +439,17 @@ controller.userMovieLike = async (req, res, next) => {
       // dPayloadMovie.$inc = { total_likes: 1, total_unlikes: -1 };
       dPayloadEpisode.$inc = { total_likes: 1, total_unlikes: -1 };
       dPayloadCityMovieLike.$inc = {
-        total_users_likes: 1,
+        total_genre_likes: 1,
         total_users_unlikes: -1,
+      };
+      dPayloadCityMovieGenreLike.$inc = {
+        total_genre_likes: 1,
+        total_genre_unlikes: -1,
       };
 
       // user movie like stats update for demographic genre,
       for (const everyGenre of arrayGenres) {
-        qUserGenreStat[`movie_like_stats.${everyGenre}`] = 1;
+        qUserGenreStat[`${everyGenre.replaceAll("-", "_")}`] = 1;
       }
     }
     if (
@@ -432,19 +460,23 @@ controller.userMovieLike = async (req, res, next) => {
       // dPayloadMovie.$inc = { total_unlikes: 1,total_likes:-1 };
       dPayloadEpisode.$inc = { total_unlikes: 1, total_likes: -1 };
       dPayloadCityMovieLike.$inc = {
-        total_users_likes: -1,
+        total_genre_likes: -1,
         total_users_unlikes: 1,
+      };
+      dPayloadCityMovieGenreLike.$inc = {
+        total_genre_likes: -1,
+        total_genre_unlikes: 1,
       };
 
       // user movie like stats update for demographic genre,
       for (const everyGenre of arrayGenres) {
-        qUserGenreStat[`movie_like_stats.${everyGenre}`] = -1;
+        qUserGenreStat[`${everyGenre.replaceAll("-", "_")}`] = -1;
       }
     }
 
     // for logic series movie, coming
     if (dMovie.type == "series") {
-      await MovieEpisodeModel.findOneAndUpdate(
+      await EpisodeModel.findOneAndUpdate(
         { _id: payload.episode_id },
         dPayloadEpisode,
         { session },
@@ -479,6 +511,25 @@ controller.userMovieLike = async (req, res, next) => {
       { upsert: true, returnDocument: "after", session },
     );
 
+    for (const everyGenre of dMovie.genres) {
+      const result = await CityStatMovieGenreModel.findOne({
+        genre_id: everyGenre,
+      }).lean();
+      await CityStatMovieGenreModel.findOneAndUpdate(
+        {
+          genre_id: everyGenre,
+          city: payload.location_raw.city || "Unknown",
+          continent: payload.location_raw.continent,
+          country: payload.location_raw.country,
+          regionName: payload.location_raw.regionName,
+        },
+        dPayloadCityMovieGenreLike,
+        { upsert: true, returnDocument: "after", session },
+      );
+    }
+
+    dPayloadCityMovieLike.movie_id = payload.movie_id;
+    dPayloadCityMovieLike.movie_name = dMovie.title;
     await CityStatMovieLikeModel.findOneAndUpdate(
       {
         movie_id: payload.movie_id,
@@ -490,6 +541,25 @@ controller.userMovieLike = async (req, res, next) => {
       dPayloadCityMovieLike,
       { upsert: true, returnDocument: "after", session },
     );
+
+    const updatePayload = {};
+    for (const [genreName, incrementValue] of Object.entries(qUserGenreStat)) {
+      // Format menjadi: "genre_like_stats.action" : 1
+      updatePayload[`genre_like_stats.${genreName}`] = incrementValue;
+    }
+    const userActivity = await UserMovieActivityModel.findOneAndUpdate(
+      { user_id: payload.guest_id },
+      { $inc: updatePayload },
+      { upsert: true, returnDocument: "after", session },
+    );
+
+    setCache({
+      key: payload.guest_id?.toString(),
+      data: {
+        genre_watch_stats: userActivity.genre_watch_stats,
+        genre_like_stats: userActivity.genre_like_stats,
+      },
+    });
 
     // update city stat movie like
     await LogActionModel.create(logActions, { session });
@@ -526,12 +596,23 @@ controller.userMovieWatchHistory = async (req, res, next) => {
   */
   try {
     const payload = req.body;
-    const qUserGenreStat = {};
 
-    if (req.login) payload.guest_id = req.login._id;
+    if (req.login) {
+      payload.guest_id = req.login.user_id;
+      payload.user_id = req.login.user_id;
+      payload.is_guest = false;
+    }
+    if (payload.guest_id && !req.login) {
+      payload.user_id = payload.guest_id;
+      payload.guest_id = payload.guest_id;
+      payload.is_guest = true;
+    }
 
-    const dMovie = await MovieModel.findOne({ _id: payload.movie_id })
-      .select("_id name is_series type genres_name")
+    const dMovie = await MovieModel.findOne({
+      _id: payload.movie_id,
+    })
+      .populate({ path: "genres", model: "Genre", select: "_id name" })
+      .select("_id title is_series type genres_name genres")
       .lean();
 
     if (!dMovie)
@@ -549,7 +630,6 @@ controller.userMovieWatchHistory = async (req, res, next) => {
       user_id: payload.guest_id,
       movie_id: payload.movie_id,
     };
-    if (payload.episode_id) query.episode_id = payload.episode_id;
 
     const dMovieHistoryExist = await WatchHistoryModel.findOne(query).lean();
 
@@ -561,39 +641,26 @@ controller.userMovieWatchHistory = async (req, res, next) => {
       });
     }
 
-    if (payload.progress_seconds === dMovieHistoryExist?.duration_seconds) {
-      payload.is_completed = true;
-      await CityStatMovieWatchModel.findOneAndUpdate(
-        {
-          movie_id: payload.movie_id,
-          city: payload.location_raw.city || "Unknown",
-          continent: payload.location_raw.continent,
-          country: payload.location_raw.country,
-          regionName: payload.location_raw.regionName,
-        },
-        { status: "completed" },
-        { session },
-      );
+    await CityStatMovieWatchModel.findOneAndUpdate(
+      {
+        movie_id: payload.movie_id,
+        city: payload.location_raw.city || "Unknown",
+        continent: payload.location_raw.continent,
+        country: payload.location_raw.country,
+        regionName: payload.location_raw.regionName,
+      },
+      { $inc: { total_users_watches: 1 }, ...payload.location_raw, ...payload },
+      { upsert: true, returnDocument: "after", session },
+    );
 
-      if (req.login) {
-        // user movie like stats update for demographic genre,
-        for (const everyGenre of arrayGenres) {
-          qUserGenreStat[`genre_watch_stats.${everyGenre}`] = 1;
-        }
-        await UserMovieActivityModel.findOneAndUpdate(
-          { user_id: payload.guest_id },
-          { $inc: qUserGenreStat },
-          { session },
-        );
-
-        // next step update at REDIS for real time update user movie watch stats for demographic genre
-      }
-    }
     const dMovieHistoryUpdate = await WatchHistoryModel.findOneAndUpdate(
       query,
       payload,
       { upsert: true, returnDocument: "after", session },
     );
+
+    if (payload.progress_seconds === dMovieHistoryExist?.duration_seconds)
+      payload.is_completed = true;
 
     /* untuk saat ini logiknya counting watch movie di collection WatchHistory dan Movie
      akan bertambah ketika user pertama kali menonton
@@ -627,14 +694,36 @@ controller.userMovieWatchHistory = async (req, res, next) => {
           ...payload.location_raw,
           ...payload,
         },
-        { session },
+        { upsert: true, returnDocument: "after", session },
       );
       await MovieModel.findOneAndUpdate(
         { _id: payload.movie_id },
         { $inc: { total_watch: 1 } },
-        { session },
+        { upsert: true, returnDocument: "after", session },
       );
     }
+
+    // update user activity for demographic genre watch stats
+    const updatePayload = {};
+    for (const everyGenre of arrayGenres) {
+      // Format menjadi: "genre_like_stats.action" : 1
+      updatePayload[
+        `genre_watch_stats.${everyGenre.toLowerCase().replaceAll(" ", "_")}`
+      ] = 1;
+    }
+    const userActivity = await UserMovieActivityModel.findOneAndUpdate(
+      { user_id: payload.guest_id },
+      { $inc: updatePayload },
+      { upsert: true, returnDocument: "after", session },
+    );
+
+    setCache({
+      key: payload.guest_id?.toString(),
+      data: {
+        genre_watch_stats: userActivity.genre_watch_stats,
+        genre_like_stats: userActivity.genre_like_stats,
+      },
+    });
 
     await session.commitTransaction();
     // update socket for real time update movie like and demographic genre like stats, coming soon
@@ -775,8 +864,9 @@ controller.getAllDemographicLike = async (req, res, next) => {
     const populateField = [
       {
         path: "movie_id",
-        select: "_id name cover_id",
-        populate: { path: "cover_id", select: "path" },
+        model: "Movie",
+        select: "_id title cover_id",
+        populate: { path: "cover_id", select: "_id path" },
       },
     ];
     const { search, type, page, limit = 10 } = req.query;
@@ -796,6 +886,7 @@ controller.getAllDemographicLike = async (req, res, next) => {
         populateField,
         skip,
         limit,
+        selectField: "-location_raw -__v -created_at",
       },
     );
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
@@ -839,6 +930,7 @@ controller.getAllDemographicGenre = async (req, res, next) => {
         populateField,
         skip,
         limit,
+        selectField: "-location_raw -__v -created_at",
       },
     );
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
@@ -882,6 +974,7 @@ controller.getAllDemographicWatch = async (req, res, next) => {
         populateField,
         skip,
         limit,
+        selectField: "-location_raw -__v -created_at",
       },
     );
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
@@ -925,6 +1018,7 @@ controller.getAllDemographicRating = async (req, res, next) => {
         populateField,
         skip,
         limit,
+        selectField: "-location_raw -__v -created_at",
       },
     );
     res.status(200).json({ ...result, page_size, current_page: Number(page) });

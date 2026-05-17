@@ -15,7 +15,7 @@ const UserMovieActivitySchema = Schema(
       default: {},
     },
 
-    movie_like_stats: {
+    genre_like_stats: {
       type: Schema.Types.Mixed,
       default: {},
     },

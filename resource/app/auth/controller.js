@@ -1,5 +1,5 @@
 const { jwt } = require("../../utils/config");
-const AuthUser = require("../models/auth");
+const AuthUser = require("../models/auth.model");
 const UserSchema = require("../models/users.model");
 const bcrypt = require("bcrypt");
 const { BadRequestError, NotFoundError } = require("../../utils/errors");
@@ -12,6 +12,7 @@ const EpisodeRatingModel = require("../models/EpisodeRating.model");
 const UserMovieLikeModel = require("../models/UserMovieLike.model");
 const UserMovieRatingModel = require("../models/UserMovieRating.model");
 const WatchHistoryModel = require("../models/WatchHistory.model");
+const RoleModel = require("../models/role.model");
 
 const controller = {};
 
@@ -34,7 +35,7 @@ controller.Register = async (req, res, next) => {
     // komparasikan dengna yang ada di database
     const [isAvailable, defaultRole] = await Promise.all([
       AuthUser.findOne({ email: payload.email }).lean(),
-      ReffParameter.findOne({ type: "role", value: "members" }).lean(),
+      RoleModel.findOne({ name: "Members" }).lean(),
     ]);
 
     if (isAvailable) {
@@ -113,7 +114,15 @@ controller.Register = async (req, res, next) => {
 
 controller.Login = async (req, res, next) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
+
+  // PROTEKSI: Hanya jalankan transaksi jika MongoDB berjalan sebagai Replica Set / Sharded Cluster
+  const useTransaction =
+    mongoose.connection.replicaSet || process.env.NODE_ENV === "production";
+
+  if (useTransaction) {
+    session.startTransaction();
+  }
+
   try {
     /*
     #swagger.tags = ['Master Role']
@@ -124,82 +133,105 @@ controller.Login = async (req, res, next) => {
       description: 'Create role',
       schema: { $ref: '#/definitions/BodyAuthLoginSchema' }
     }
-  */
+    */
     const { email, password, guest_id } = req.body;
-    // komparasikan data darai body dengan di databse
 
+    // 1. Cari data kredensial di AuthUser
     const isAvailable = await crudServices.findOne(AuthUser, {
       query: { email },
       selectField: "-createdAt",
     });
 
-    if (!isAvailable.data) {
-      throw new NotFoundError("Email not register!");
+    if (!isAvailable || !isAvailable.data) {
+      throw new NotFoundError("Email not registered!");
     }
 
+    // 2. Validasi Password
     const isMatch = await bcrypt.compare(password, isAvailable.data.password);
     if (!isMatch) {
       throw new BadRequestError("Please check your password!");
     }
 
     const populateField = [
-      { path: "role_id", model: "ReffParameter", select: "_id value" },
+      { path: "role_id", model: "Role", select: "_id name" },
     ];
 
-    const users = await crudServices.findOne(UserSchema, {
-      auth_id: isAvailable.data._id,
-      selectField: "-auth_id -device_token -createdAt",
-      populateField,
-    });
+    // 3. Ambil data Profile User
+    const users = await UserSchema.findOne({ auth_id: isAvailable.data._id })
+      .select("-auth_id -device_token -created_at -updated_at")
+      .populate(populateField)
+      .lean(); // .lean() mengubah data menjadi objek literal JS biasa
 
-    users.data._doc.role_name = users.data.role_id.value;
-    delete users.data._doc.role_id;
+    if (!users) {
+      throw new NotFoundError("User profile data not found!");
+    }
 
+    // 4. Transformasi format Role agar flat
+    if (users.role_id) {
+      users.role_name = users.role_id.name;
+      delete users.role_id;
+    } else {
+      users.role_name = "Guest";
+    }
+
+    // 5. Generate JWT Token
     const token = globalService.generateJwtToken({
       email,
       name: isAvailable.data.username,
     });
 
-    // update semua data yang memiliki guest_id sama dengan guest_id yang dikirimkan oleh user ketika login
+    // 6. Migrasi data Guest ke User Terdaftar (jika ada guest_id)
     if (guest_id) {
+      // Masukkan opsi session hanya jika transaksi aktif
+      const options = useTransaction ? { session } : {};
+
       await Promise.all([
         EpisodeLikeModel.updateMany(
           { user_id: guest_id },
-          { user_id: users.data._id, is_guest: false },
-          { session },
+          { user_id: users._id, is_guest: false },
+          options,
         ),
         EpisodeRatingModel.updateMany(
           { user_id: guest_id },
-          { user_id: users.data._id, is_guest: false },
-          { session },
+          { user_id: users._id, is_guest: false },
+          options,
         ),
         UserMovieLikeModel.updateMany(
           { user_id: guest_id },
-          { user_id: users.data._id, is_guest: false },
-          { session },
+          { user_id: users._id, is_guest: false },
+          options,
         ),
         UserMovieRatingModel.updateMany(
           { user_id: guest_id },
-          { user_id: users.data._id, is_guest: false },
-          { session },
+          { user_id: users._id, is_guest: false },
+          options,
         ),
         WatchHistoryModel.updateMany(
           { user_id: guest_id },
-          { user_id: users.data._id, is_guest: false },
-          { session },
+          { user_id: users._id, is_guest: false },
+          options,
         ),
       ]);
     }
 
-    await session.commitTransaction();
+    if (useTransaction) {
+      await session.commitTransaction();
+    }
 
+    // PERBAIKAN FATAL: Karena pakai .populate().lean(), users sudah bersih berbentuk objek biasa.
+    // Tidak perlu memanggil .data._doc lagi karena akan menghasilkan undefined.
     res.status(200).json({
       status: true,
       message: "Login success!",
-      data: { ...users.data._doc, token },
+      data: {
+        ...users,
+        token,
+      },
     });
   } catch (err) {
-    await session.abortTransaction();
+    if (useTransaction && session.inTransaction()) {
+      await session.abortTransaction();
+    }
     next(err);
   } finally {
     session.endSession();

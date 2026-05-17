@@ -1,4 +1,4 @@
-const AuthUser = require("../app/models/auth");
+const AuthUser = require("../app/models/auth.model");
 const UserModel = require("../app/models/users.model");
 const globalService = require("../helper/global-func");
 const ENV = require("../utils/config");
@@ -37,7 +37,7 @@ const AuthorizeUserLogin = async (req, res, next) => {
     const userLogin = await UserModel.findOne({
       auth_id: verifyData._id,
     })
-      .populate("role_id")
+      .populate({ path: "role_id", model: "Role", select: "_id name" })
       .lean();
 
     // impliment login user

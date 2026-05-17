@@ -4,19 +4,21 @@ const Authchema = {
       username: "john doe",
       email: "john.doe@gmail.com",
       password: "123456",
+      guest_id: "6a09221b951d3cce35365c1f",
     },
   },
   Login: {
     BodyAuthLoginSchema: {
-      email: "john.doe@gmail.com",
-      password: "123456",
+      email: "superadmin@mail.com",
+      password: "password123",
+      guest_id: "6a09221b951d3cce35365c1f",
     },
   },
   ForgotPassword: {
     BodyAuthForgotSchema: {
-      email: "john.doe@gmail.com",
-      password: "123456",
-      confirm_password: "123456",
+      email: "superadmin@mail.com",
+      password: "password123",
+      confirm_password: "password123",
     },
   },
 };

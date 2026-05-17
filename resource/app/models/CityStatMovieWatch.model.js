@@ -13,15 +13,15 @@ const CityStatMovieWatchSchema = new Schema(
       required: [true, "Nama film wajib diisi"],
       trim: true,
     },
-    status: {
-      type: String,
-      enum: {
-        values: ["on-progress", "completed"],
-        message: "{VALUE} is not a valid status",
-      },
-      default: "on-progress",
-      required: [true, "Status is required!"],
-    },
+    // status: {
+    //   type: String,
+    //   enum: {
+    //     values: ["on-progress", "completed"],
+    //     message: "{VALUE} is not a valid status",
+    //   },
+    //   default: "on-progress",
+    //   required: [true, "Status is required!"],
+    // },
     // Field lokasi yang dipetakan dari API
     continent: { type: String, default: null },
     continentCode: { type: String, default: null },

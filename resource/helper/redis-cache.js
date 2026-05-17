@@ -1,4 +1,4 @@
-const getOrSetCache = async (key, expiry = 3600, fetchFunction) => {
+const getOrSetCache = async ({ key, expiry = 3600, fetchFunction }) => {
   try {
     // 1. Coba ambil data dari Redis
     const cachedData = await global.redisClient.get(key);
@@ -41,9 +41,9 @@ const clearCache = async (key) => {
 /**
  * Menimpa cache secara langsung (Overwrite)
  */
-const setCache = async (key, data, expiry = 3600) => {
+const setCache = async ({ key, data, expiry = 3600 }) => {
   try {
-    await global.redisClient.set(key, JSON.stringify(data), {
+    return await global.redisClient.set(key, JSON.stringify(data), {
       EX: expiry,
     });
     console.log(`💾 Cache Updated: ${key}`);

@@ -17,9 +17,8 @@ const SysUserModel = Schema(
 
     role_id: {
       type: mongoose.Types.ObjectId,
-      ref: "ReffParameter",
+      ref: "Role",
       require: true,
-      unique: true,
     },
     device_token: {
       type: String,

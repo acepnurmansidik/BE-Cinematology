@@ -32,6 +32,8 @@ const UserSchema = {
     movie_id: "65f2a1b2c3d4e5f6a7b8c9d0",
     episode_id: "65f2a1b2c3d4e5f6a7b8c9d1",
     guest_id: "65f2a1b2c3d4e5f6a7b8c9d2",
+    progress_seconds: 3600, // Detik yang sudah ditonton
+    duration_seconds: 7200, // Total durasi movie dalam detik
     is_guest: true,
     location_raw: {
       continent: "Asia",
