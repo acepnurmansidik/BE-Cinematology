@@ -18,9 +18,11 @@ controller.getAllAuthor = async (req, res, next) => {
     const { search, type, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
     if (query.length) query.type = type;
-    const arrFilter = [];
+    const arrFilter = [
+      { path: "avatar_id", model: "Image", select: "_id path" },
+    ];
     if (search) {
-      arrFilter.push({ value: { $regex: search, $options: "i" } });
+      arrFilter.push({ name: { $regex: search, $options: "i" } });
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 

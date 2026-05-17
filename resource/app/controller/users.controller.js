@@ -36,7 +36,7 @@ controller.getAllTransaction = async (req, res, next) => {
     if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
-      arrFilter.push({ value: { $regex: search, $options: "i" } });
+      arrFilter.push({ status: { $regex: search, $options: "i" } });
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 

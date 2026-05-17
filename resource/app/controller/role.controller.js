@@ -20,7 +20,7 @@ controller.getAllRole = async (req, res, next) => {
     if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
-      arrFilter.push({ value: { $regex: search, $options: "i" } });
+      arrFilter.push({ name: { $regex: search, $options: "i" } });
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 

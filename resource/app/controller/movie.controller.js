@@ -28,19 +28,39 @@ controller.getAllMovieAdminOnly = async (req, res, next) => {
   try {
     const query = {};
     const populateField = [
-      { path: "thumbnail_id", model: "Image", select: "_id source_name" },
-      { path: "cover_id", model: "Image", select: "_id source_name" },
+      { path: "thumbnail_id", model: "Image", select: "_id path" },
+      { path: "cover_id", model: "Image", select: "_id path" },
       { path: "genres", model: "Genre", select: "_id name is_new" },
-      { path: "studios", model: "Studio", select: "_id name is_new" },
-      { path: "authors", model: "Author", select: "_id name is_new" },
-      { path: "actors", model: "Actor", select: "_id name is_new" },
+      {
+        path: "studios",
+        model: "Studio",
+        select: "_id name is_new profile_id",
+        populate: { path: "profile_id", model: "Image", select: "_id path" },
+      },
+      {
+        path: "authors",
+        model: "Author",
+        select: "_id name is_new avatar_id",
+        populate: { path: "avatar_id", model: "Image", select: "_id path" },
+      },
+      {
+        path: "actors",
+        model: "Actor",
+        select: "_id name is_new avatar_id",
+        populate: { path: "avatar_id", model: "Image", select: "_id path" },
+      },
     ];
     const { search, type, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
     if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
-      arrFilter.push({ value: { $regex: search, $options: "i" } });
+      arrFilter.push({ title: { $regex: search, $options: "i" } });
+      arrFilter.push({ code: { $regex: search, $options: "i" } });
+      arrFilter.push({ genres_name: { $regex: search, $options: "i" } });
+      arrFilter.push({ authors_name: { $regex: search, $options: "i" } });
+      arrFilter.push({ actors_name: { $regex: search, $options: "i" } });
+      arrFilter.push({ studio_name: { $regex: search, $options: "i" } });
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
