@@ -52,4 +52,23 @@ const setCache = async ({ key, data, expiry = 3600 }) => {
   }
 };
 
-module.exports = { getOrSetCache, clearCache, setCache };
+/**
+ * get data dengan cache Redis
+ */
+
+const getCache = async (key) => {
+  try {
+    const cacheData = await global.redisClient.get(key);
+
+    if (cacheData) {
+      console.log(`🚀 Cache Hit: ${key}`);
+      return JSON.parse(cacheData);
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Redis Set Error:", error);
+  }
+};
+
+module.exports = { getOrSetCache, clearCache, setCache, getCache };

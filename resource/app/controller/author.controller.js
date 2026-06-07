@@ -64,7 +64,6 @@ controller.createAuthor = async (req, res, next) => {
         message: "Author already exists!",
         data: "",
       });
-    console.log(payload);
 
     const result = await crudServices.create(AuthorModel, { data: payload });
     res.status(201).json({

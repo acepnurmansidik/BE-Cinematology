@@ -73,7 +73,6 @@ crudServices.findAllPagination = async (
   { query, populateField, selectField = "", skip, limit = 10 },
 ) => {
   try {
-    console.log(selectField);
     const result = await model
       .find({ ...query, is_delete: { $ne: true } }, {})
       .populate(populateField)

@@ -12,6 +12,7 @@ const CityStatMovieLikeModel = require("../models/CityStatMovieLike.model");
 const LogActionModel = require("../models/LogAction.model");
 const CityStatMovieWatchModel = require("../models/CityStatMovieWatch.model");
 const CityStatMovieRatingModel = require("../models/CityStatMovieRating.model");
+const { getCache } = require("../../helper/redis-cache");
 
 const controller = {};
 
@@ -528,5 +529,343 @@ controller.getDemographicMovieUserRating = async (req, res, next) => {
     next(err);
   }
 };
+
+// GET MOVIE RECOMMENDATION
+controller.getMovieRecommendation = async (req, res, next) => {
+  /* #swagger.tags = ['MOVIE']
+    #swagger.summary = 'get movie recommendation'
+    #swagger.description = 'get movie recommendation based on user history and demographic'
+  */
+
+  try {
+    const userId = req.login?.user_id;
+    const { limit = 10, user_region, user_city } = req.query;
+    let recommendedMovies = [];
+
+    // ==========================================
+    // STRATEGI 1: REKOMENDASI BERDASARKAN CACHE USER
+    // ==========================================
+    const userExistOnCache = await getCache(userId);
+    if (
+      userExistOnCache?.genre_like_stats &&
+      Object.keys(userExistOnCache.genre_like_stats).length &&
+      userId
+    ) {
+      const targetGenres = Object.keys(userExistOnCache.genre_like_stats);
+
+      recommendedMovies = await MovieModel.aggregate([
+        {
+          $match: {
+            is_delete: false,
+            genres_name: {
+              $regex: targetGenres.join("|"),
+              $options: "i",
+            },
+          },
+        },
+        {
+          $addFields: {
+            recommendationScore: {
+              $add: targetGenres.map((genre) => {
+                const weight = userExistOnCache.genre_like_stats[genre] || 0;
+                return {
+                  $cond: [
+                    {
+                      $regexMatch: {
+                        input: "$genres_name",
+                        regex: genre,
+                        options: "i",
+                      },
+                    },
+                    weight,
+                    0,
+                  ],
+                };
+              }),
+            },
+          },
+        },
+        {
+          $sort: {
+            recommendationScore: -1,
+            total_rating: -1,
+          },
+        },
+        {
+          $limit: Number(limit),
+        },
+        // PERBAIKAN: Populate thumbnail_id di Aggregation
+        {
+          $lookup: {
+            from: "images", // Sesuaikan nama koleksi image Anda di MongoDB
+            localField: "thumbnail_id",
+            foreignField: "_id",
+            as: "thumbnail_id",
+          },
+        },
+        {
+          $unwind: { path: "$thumbnail_id", preserveNullAndEmptyArrays: true },
+        },
+        // PERBAIKAN: Batasi field yang ditampilkan
+        {
+          $project: {
+            _id: 1,
+            title: 1,
+            slug: 1,
+            synopsis: 1,
+            genres_name: 1,
+            release_date: 1,
+            vote_rating: 1,
+            "thumbnail_id._id": 1,
+            "thumbnail_id.path": 1,
+          },
+        },
+      ]);
+
+      if (recommendedMovies.length > 0) {
+        return res.status(200).json({
+          success: true,
+          messaging:
+            "Movie recommendations retrieved successfully from user preference!",
+          data: recommendedMovies,
+        });
+      }
+    }
+
+    // ==========================================
+    // STRATEGI 2: REKOMENDASI BERDASARKAN LIKES DI KOTA USER
+    // ==========================================
+    if (user_region && user_city) {
+      recommendedMovies = await CityStatMovieLikeModel.aggregate([
+        {
+          $match: {
+            regionName: user_region,
+            city: user_city,
+            total_users_likes: { $gt: 0 },
+          },
+        },
+        {
+          $sort: { total_users_likes: -1 },
+        },
+        {
+          $limit: Number(limit),
+        },
+        {
+          $lookup: {
+            from: "movies",
+            localField: "movie_id",
+            foreignField: "_id",
+            as: "movie_details",
+          },
+        },
+        {
+          $unwind: "$movie_details",
+        },
+        {
+          $match: {
+            "movie_details.is_delete": false,
+          },
+        },
+        // PERBAIKAN: Populate thumbnail_id milik movie_details di Aggregation
+        {
+          $lookup: {
+            from: "images",
+            localField: "movie_details.thumbnail_id",
+            foreignField: "_id",
+            as: "movie_details.thumbnail_id",
+          },
+        },
+        {
+          $unwind: {
+            path: "$movie_details.thumbnail_id",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        // PERBAIKAN: Batasi field yang ditampilkan ke dalam objek movie
+        {
+          $project: {
+            _id: 0,
+            movie: {
+              _id: "$movie_details._id",
+              title: "$movie_details.title",
+              slug: "$movie_details.slug",
+              synopsis: "$movie_details.synopsis",
+              genres_name: "$movie_details.genres_name",
+              vote_rating: "$movie_details.vote_rating",
+              release_date: "$movie_details.release_date",
+              thumbnail_id: {
+                _id: "$movie_details.thumbnail_id._id",
+                path: "$movie_details.thumbnail_id.path",
+              },
+            },
+          },
+        },
+      ]);
+
+      if (recommendedMovies.length > 0) {
+        const mappedData = [];
+        for (const element of recommendedMovies) {
+          mappedData.push(element.movie);
+        }
+        return res.status(200).json({
+          success: true,
+          message: `Rekomendasi film terpopuler di kota ${user_city}`,
+          data: mappedData,
+        });
+      }
+    }
+
+    // ==========================================
+    // STRATEGI 3: REKOMENDASI BERDASARKAN TREN GENRE DI KOTA USER
+    // ==========================================
+    if (user_region && user_city) {
+      const topGenresInCity = await CityStatMovieGenreModel.aggregate([
+        {
+          $match: {
+            regionName: user_region,
+            city: user_city,
+            total_genre_likes: { $gt: 0 },
+          },
+        },
+        {
+          $sort: { total_genre_likes: -1 },
+        },
+        {
+          $limit: 3,
+        },
+        {
+          $lookup: {
+            from: "genres",
+            localField: "genre_id",
+            foreignField: "_id",
+            as: "genre_info",
+          },
+        },
+        { $unwind: "$genre_info" },
+        {
+          $project: {
+            genre_name: "$genre_info.name",
+            weight: "$total_genre_likes",
+          },
+        },
+      ]);
+
+      if (topGenresInCity.length > 0) {
+        const targetGenreNames = [];
+        for (const genreCity of topGenresInCity) {
+          targetGenreNames.push(genreCity.genre_name.toLowerCase());
+        }
+
+        const genreWeightMap = {};
+        for (const genreCity of topGenresInCity) {
+          genreWeightMap[genreCity.genre_name.toLowerCase()] = genreCity.weight;
+        }
+
+        recommendedMovies = await MovieModel.aggregate([
+          {
+            $match: {
+              is_delete: false,
+              genres_name: {
+                $regex: targetGenreNames.join("|"),
+                $options: "i",
+              },
+            },
+          },
+          {
+            $addFields: {
+              cityRecommendationScore: {
+                $add: targetGenreNames.map((genre) => {
+                  const weight = genreWeightMap[genre] || 0;
+                  return {
+                    $cond: [
+                      {
+                        $regexMatch: {
+                          input: "$genres_name",
+                          regex: genre,
+                          options: "i",
+                        },
+                      },
+                      weight,
+                      0,
+                    ],
+                  };
+                }),
+              },
+            },
+          },
+          {
+            $sort: { cityRecommendationScore: -1, vote_rating: -1 },
+          },
+          {
+            $limit: Number(limit),
+          },
+          // PERBAIKAN: Populate thumbnail_id di Aggregation Strategi 3
+          {
+            $lookup: {
+              from: "images",
+              localField: "thumbnail_id",
+              foreignField: "_id",
+              as: "thumbnail_id",
+            },
+          },
+          {
+            $unwind: {
+              path: "$thumbnail_id",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          // PERBAIKAN: Batasi field yang ditampilkan
+          {
+            $project: {
+              _id: 1,
+              title: 1,
+              slug: 1,
+              synopsis: 1,
+              genres_name: 1,
+              release_date: 1,
+              vote_rating: 1,
+              "thumbnail_id._id": 1,
+              "thumbnail_id.path": 1,
+            },
+          },
+        ]);
+
+        if (recommendedMovies.length > 0) {
+          return res.status(200).json({
+            success: true,
+            message: `Rekomendasi film berdasarkan selera genre terbesar di kota ${user_city}`,
+            data: recommendedMovies,
+          });
+        }
+      }
+    }
+
+    // ==========================================
+    // STRATEGI DEFAULT: FALLBACK KE NEW RELEASE MOVIE
+    // ==========================================
+    const populateField = [
+      { path: "thumbnail_id", model: "Image", select: "_id path" },
+    ];
+    const defaultData = await MovieModel.find({ is_delete: false })
+      .select(
+        "_id title slug synopsis genres_name thumbnail_id release_date vote_rating",
+      )
+      .populate(populateField)
+      .limit(Number(limit))
+      .sort({ created_at: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      messaging:
+        "Movie recommendations retrieved successfully from new releases!",
+      data: defaultData,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GETn
 
 module.exports = controller;

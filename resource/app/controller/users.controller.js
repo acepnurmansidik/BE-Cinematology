@@ -906,13 +906,7 @@ controller.getAllDemographicGenre = async (req, res, next) => {
   */
   try {
     const query = {};
-    const populateField = [
-      {
-        path: "movie_id",
-        select: "_id name cover_id",
-        populate: { path: "cover_id", select: "path" },
-      },
-    ];
+    const populateField = [{ path: "genre_id", select: "_id name" }];
     const { search, type, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
     if (query.length) query.type = type;

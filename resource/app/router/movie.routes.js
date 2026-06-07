@@ -15,4 +15,7 @@ router.get(
   controller.getDemographicMovieUserRating,
 );
 
+// Movie Recommendation
+router.get("/recommendation", controller.getMovieRecommendation);
+
 module.exports = router;

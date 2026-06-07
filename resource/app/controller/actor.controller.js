@@ -64,7 +64,6 @@ controller.createActor = async (req, res, next) => {
         message: "Actor already exists!",
         data: "",
       });
-    console.log(payload);
 
     const result = await crudServices.create(ActorModel, { data: payload });
     res.status(201).json({
