@@ -1,109 +1,229 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-
-// Import Model
-const { urlDb } = require("../utils/config");
-const globalService = require("../helper/global-func");
 const AuthUserModel = require("../app/models/auth.model");
 const roleModel = require("../app/models/role.model");
 const usersModel = require("../app/models/users.model");
+const ModuleModel = require("../app/models/Module.model");
 const GenreModel = require("../app/models/Genre.model");
+const { USER_IAM } = require("../utils/etc/permission");
+const globalService = require("../helper/global-func");
 
-const runSeeder = async () => {
+const runMainSeeder = async () => {
   const session = await mongoose.startSession();
   session.startTransaction();
+  const fullActions = {
+    view: true,
+    create: true,
+    update: true,
+    delete: true,
+    import: true,
+    export: true,
+    pdf: true,
+    whatsapp: true,
+  };
 
   try {
-    console.log("\n=== Connected to Database for Seeding ===");
+    const defaultActions = [
+      "view",
+      "create",
+      "update",
+      "delete",
+      "import",
+      "export",
+      "pdf",
+      "whatsapp",
+    ];
 
     // ==========================================
-    // SEEDER 1: PROSES MEMBUAT ROLES
+    // SEEDER 1: PROSES MEMBUAT MODULE
     // ==========================================
-    console.log("Seeding Roles...");
+    console.log("✅ Modules started seeder!");
+    for (const mod of USER_IAM) {
+      const processedModule = {
+        name: mod.name,
+        title: mod.title,
+        slug: globalService.createSlug(mod.name),
+        permission: mod.permission.map((perm) => ({
+          icon: perm.icon,
+          menu_name: perm.menu_name,
+          path: perm.path,
+          actions: perm.actions,
+          children: perm.children.map((child) => ({
+            name: child.name,
+            path: child.path,
+            actions: child.actions,
+          })),
+        })),
+      };
 
-    const rolesToSeed = [{ name: "Ultra Admin" }, { name: "Members" }];
-    const seededRoles = {};
-
-    for (const roleData of rolesToSeed) {
-      const slug = globalService.createSlug(roleData.name);
-
-      const role = await roleModel.findOneAndUpdate(
-        { slug: slug },
-        {
-          name: roleData.name,
-          slug: slug,
-          is_delete: false,
-        },
-        {
-          upsert: true,
-          returnDocument: "after",
-          session,
-          setDefaultsOnInsert: true,
-        },
+      await ModuleModel.findOneAndUpdate(
+        { slug: processedModule.slug },
+        { $set: processedModule },
+        { upsert: true, session },
       );
-
-      // Simpan object ID role ke dalam memori untuk dipakai saat seeding user
-      seededRoles[slug] = role._id;
     }
-    console.log("✅ Roles seeded successfully!");
+    console.log("✅ Modules upserted successfully!");
 
     // ==========================================
-    // SEEDER 2: PROSES MEMBUAT AKUN SUPER ADMIN
+    // SEEDER 2: PROSES MEMBUAT ROLES
     // ==========================================
-    console.log("Seeding Super Admin Account...");
 
-    const adminEmail = "superadmin@mail.com";
-    const adminUsername = "superadmin";
+    console.log("✅ Role started seeder!");
+    const allModules = await ModuleModel.find({}).session(session);
 
-    // Hash password sebelum disimpan ke database
+    const roleSlug = "super-ultraman";
+    const superUltramanData = {
+      name: "Super Ultraman",
+      slug: roleSlug,
+      has_access_module: [], // Inisialisasi array kosong
+      path_access: [],
+    };
+
+    // Helper function untuk mengubah array ["view", "create"] menjadi { view: true, create: true }
+    const arrayToObjectActions = (actionsArray) => {
+      const actionsObj = {};
+      if (Array.isArray(actionsArray)) {
+        actionsArray.forEach((action) => {
+          actionsObj[action] = true;
+        });
+      } else if (actionsArray instanceof Map) {
+        // Jika sudah berupa Map, konversi ke objek
+        Object.fromEntries(actionsArray).forEach((val, key) => {
+          actionsObj[key] = val;
+        });
+      } else {
+        // Jika sudah objek, kembalikan apa adanya
+        return actionsArray;
+      }
+      return actionsObj;
+    };
+
+    // Mapping has_access_module dengan pembersihan mendalam
+    for (const mod of allModules) {
+      const moduleItem = {
+        name: mod.name,
+        title: mod.title,
+        permission: [],
+      };
+
+      for (const perm of mod.permission) {
+        const hasChildren = perm.children && perm.children.length > 0;
+
+        // Jika ada children, actions parent kosong, jika tidak, konversi ke object
+        const permActions = hasChildren
+          ? {}
+          : arrayToObjectActions(perm.actions);
+
+        const permissionItem = {
+          icon: perm.icon,
+          menu_name: perm.menu_name,
+          path: perm.path,
+          actions: permActions,
+          children: [],
+        };
+
+        if (hasChildren) {
+          for (const child of perm.children) {
+            permissionItem.children.push({
+              name: child.name,
+              path: child.path,
+              actions: arrayToObjectActions(child.actions), // Konversi ke object
+            });
+          }
+        }
+
+        moduleItem.permission.push(permissionItem);
+      }
+      superUltramanData.has_access_module.push(moduleItem);
+    }
+
+    // Logika path_access dengan konversi ke object
+    for (const mod of allModules) {
+      for (const perm of mod.permission) {
+        if (perm.children && perm.children.length > 0) {
+          for (const child of perm.children) {
+            superUltramanData.path_access.push({
+              path: child.path,
+              actions: arrayToObjectActions(child.actions),
+            });
+          }
+        } else {
+          superUltramanData.path_access.push({
+            path: perm.path,
+            actions: arrayToObjectActions(perm.actions),
+          });
+        }
+      }
+    }
+
+    const role = await roleModel.findOneAndUpdate(
+      { slug: roleSlug },
+      { $set: superUltramanData },
+      { upsert: true, returnDocument: "after", session }, // Gunakan returnDocument: 'after'
+    );
+
+    // ==========================================
+    // SEEDER 3: PROSES MEMBUAT AKUN SUPER ADMIN
+    // ==========================================
+    console.log("Seeding Auth User...");
+    const adminEmail = "superultraman@mail.com";
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash("password123", salt);
 
-    // A. Upsert ke tabel AuthUser terlebih dahulu
     const authUser = await AuthUserModel.findOneAndUpdate(
       { email: adminEmail },
       {
-        username: adminUsername,
+        username: "superultraman",
         email: adminEmail,
         password: hashedPassword,
         is_delete: false,
       },
-      {
-        upsert: true,
-        returnDocument: "after",
-        setDefaultsOnInsert: true,
-        session,
-      },
+      { upsert: true, new: true, session },
     );
 
-    // B. Upsert ke tabel User (Menghubungkan auth_id dan role_id)
-    const superAdminRoleId = seededRoles["ultra-admin"];
-
-    const userProfile = await usersModel.findOneAndUpdate(
+    console.log("Seeding Super Admin Profile...");
+    await usersModel.findOneAndUpdate(
       { auth_id: authUser._id },
       {
         auth_id: authUser._id,
         name: "Akun Super Admin",
-        role_id: superAdminRoleId,
+        role_id: role._id,
         device_token: "",
-        subscription_info: {
-          status: "none",
-        },
+        subscription_info: { status: "none" },
       },
-      {
-        upsert: true,
-        returnDocument: "after",
-        setDefaultsOnInsert: true,
-        session,
-      },
+      { upsert: true, new: true, session },
     );
-    console.log("✅ Super Admin account seeded successfully!");
 
-    // ==========================================
-    // SEEDER 3: PROSES MEMBUAT GENRES (BARU)
-    // ==========================================
-    console.log("Seeding Genres...");
+    console.log("✅ Super Admin account & Role linked successfully!");
 
+    await session.commitTransaction();
+    console.log("\n=== Main Seeder completed successfully! ===");
+  } catch (error) {
+    if (session.inTransaction()) await session.abortTransaction();
+    console.error("❌ Seeder failed with error:", error);
+  } finally {
+    await session.endSession();
+  }
+};
+
+const runSecondarySeeder = async () => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  const fullActions = {
+    view: true,
+    create: true,
+    update: true,
+    delete: true,
+    import: true,
+    export: true,
+    pdf: true,
+    whatsapp: true,
+  };
+
+  try {
+    // ==========================================
+    // SEEDER 1: PROSES MEMBUAT GENRES (BARU)
+    // ==========================================
     // Daftar genre film umum dan dewasa (18+)
     const genresToSeed = [
       // === GENRE UMUM / MAINSTREAM ===
@@ -166,18 +286,14 @@ const runSeeder = async () => {
     }
     console.log("✅ Genres seeded successfully!");
 
-    // Commit semua transaksi jika tidak ada error
     await session.commitTransaction();
-    console.log("\n=== Seeder completed successfully! ===");
+    console.log("\n=== Secondary Seeder completed successfully! ===");
   } catch (error) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
+    if (session.inTransaction()) await session.abortTransaction();
     console.error("❌ Seeder failed with error:", error);
   } finally {
     await session.endSession();
   }
 };
 
-// Jalankan Seeder
-module.exports = runSeeder;
+module.exports = { runMainSeeder, runSecondarySeeder };

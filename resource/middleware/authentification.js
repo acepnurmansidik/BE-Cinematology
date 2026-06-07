@@ -37,7 +37,11 @@ const AuthorizeUserLogin = async (req, res, next) => {
     const userLogin = await UserModel.findOne({
       auth_id: verifyData._id,
     })
-      .populate({ path: "role_id", model: "Role", select: "_id name" })
+      .populate({
+        path: "role_id",
+        model: "Role",
+        select: "_id name path_access",
+      })
       .lean();
 
     // impliment login user
@@ -52,6 +56,7 @@ const AuthorizeUserLogin = async (req, res, next) => {
       device_token: userLogin.device_token,
       role_id: userLogin.role_id._id,
       role_name: userLogin.role_id.name,
+      has_access: userLogin.role_id.path_access,
     };
 
     // next to controller
