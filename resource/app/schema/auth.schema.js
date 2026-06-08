@@ -9,14 +9,14 @@ const Authchema = {
   },
   Login: {
     BodyAuthLoginSchema: {
-      email: "superadmin@mail.com",
+      email: "superultraman@mail.com",
       password: "password123",
       guest_id: "6a09221b951d3cce35365c1f",
     },
   },
   ForgotPassword: {
     BodyAuthForgotSchema: {
-      email: "superadmin@mail.com",
+      email: "superultraman@mail.com",
       password: "password123",
       confirm_password: "password123",
     },

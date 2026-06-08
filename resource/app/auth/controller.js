@@ -153,7 +153,7 @@ controller.Login = async (req, res, next) => {
     }
 
     const populateField = [
-      { path: "role_id", model: "Role", select: "_id name" },
+      { path: "role_id", model: "Role", select: "_id name path_access" },
     ];
 
     // 3. Ambil data Profile User
@@ -165,6 +165,8 @@ controller.Login = async (req, res, next) => {
     if (!users) {
       throw new NotFoundError("User profile data not found!");
     }
+
+    const path_access = users.role_id.path_access;
 
     // 4. Transformasi format Role agar flat
     if (users.role_id) {
@@ -226,6 +228,7 @@ controller.Login = async (req, res, next) => {
       data: {
         ...users,
         token,
+        path_access: path_access ?? [],
       },
     });
   } catch (err) {

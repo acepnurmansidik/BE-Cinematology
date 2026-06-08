@@ -77,6 +77,14 @@ const UserSchema = {
       hosting: false,
     },
   },
+
+  // FOR USER / IAM
+  BodyUserIAMSchema: {
+    role_id: "",
+    username: "john doe",
+    email: "john.doe@gmail.com",
+    password: "123456",
+  },
 };
 
 module.exports = UserSchema;

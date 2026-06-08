@@ -22,4 +22,10 @@ router.get("/demographic-like", controller.getAllDemographicLike);
 router.get("/demographic-watch", controller.getAllDemographicWatch);
 router.get("/demographic-rating", controller.getAllDemographicRating);
 
+// CRUD USER WITH ADMIN
+router.get("/", controller.getAllUser);
+router.post("/", controller.createUser);
+router.put("/:id", controller.updateUser);
+router.delete("/:id", controller.deleteUser);
+
 module.exports = router;
