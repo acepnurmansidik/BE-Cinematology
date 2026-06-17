@@ -27,6 +27,7 @@ const CityStatMovieLikeModel = require("../models/CityStatMovieLike.model");
 const CityStatMovieWatchModel = require("../models/CityStatMovieWatch.model");
 const CityStatMovieGenreModel = require("../models/CityStatMovieGenre.model");
 const CityStatMovieRatingModel = require("../models/CityStatMovieRating.model");
+const CityStatEpisodeLikeModel = require("../models/CityStatEpisodeLike.model");
 
 const controller = {};
 
@@ -566,15 +567,6 @@ controller.userMovieLike = async (req, res, next) => {
       .split(", ")
       .map((item) => item.replaceAll(" ", "-").toLowerCase().trim());
 
-    if (dMovie.type === "series") {
-      // cek episode like
-      const dEpisodeLikeAfter = await EpisodeLikeModel.findOneAndUpdate(
-        { user_id: payload.guest_id, movie_id: payload.movie_id },
-        payload,
-        { upsert: true, returnDocument: "after", session },
-      );
-    }
-
     // cek userMovie like
     const dMovieLikeAfter = await UserMovieLikeModel.findOneAndUpdate(
       { user_id: payload.guest_id, movie_id: payload.movie_id },
@@ -798,6 +790,29 @@ controller.userMovieLike = async (req, res, next) => {
       { $inc: updatePayload },
       { upsert: true, returnDocument: "after", session },
     );
+
+    if (dMovie.type === "series") {
+      // cek episode like
+      const dEpisodeLikeAfter = await EpisodeLikeModel.findOneAndUpdate(
+        { user_id: payload.guest_id, movie_id: payload.movie_id },
+        payload,
+        { upsert: true, returnDocument: "after", session },
+      );
+
+      await CityStatEpisodeLikeModel.findOneAndUpdate(
+        {
+          date_format,
+          movie_id: payload.movie_id,
+          episode_id: payload.episode_id,
+          city: payload.location_raw.city || "Unknown",
+          continent: payload.location_raw.continent,
+          country: payload.location_raw.country,
+          regionName: payload.location_raw.regionName,
+        },
+        dPayloadCityMovieLike,
+        { upsert: true, returnDocument: "after", session },
+      );
+    }
 
     setCache({
       key: payload.guest_id?.toString(),

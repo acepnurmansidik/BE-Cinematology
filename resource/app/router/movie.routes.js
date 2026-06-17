@@ -16,8 +16,18 @@ router.get(
   controller.getDemographicMovieUserRating,
 );
 
+// Movie Trending
 router.get("/movie-trending", controller.getMovieCurrentTrending);
+// Movie Popular
 router.get("/movie-populer", controller.getMovieCurrentPopular);
+
+// New Episode
+router.get("/new-episode", controller.getNewReleaseEpisode);
+// Episode Trending
+router.get("/episode-trending", controller.getTrendingEpisode);
+// Episode Trending
+router.get("/episode-popular", controller.getPopularEpisode);
+
 router.use(AuthorizeUserLogin);
 // Movie Recommendation
 router.get("/recommendation", controller.getMovieRecommendation);
