@@ -12,7 +12,9 @@ const authorRouter = require("../resource/app/router/author.route");
 const studioRouter = require("../resource/app/router/studio.routes");
 const moduleRouter = require("../resource/app/router/module.routes");
 const refparamRouter = require("../resource/app/router/reffParam.routes");
-const AuthorizeUserLogin = require("../resource/middleware/authentification");
+const {
+  AuthorizeUserLogin,
+} = require("../resource/middleware/authentification");
 
 router.use("/auth", authRouter);
 router.use("/plans", planRouter);
@@ -25,7 +27,7 @@ router.use("/module", moduleRouter);
 router.use("/author", authorRouter);
 router.use("/studio", studioRouter);
 router.use("/ref-parameter", refparamRouter);
-router.use(AuthorizeUserLogin);
 router.use("/user", userRouter);
+router.use(AuthorizeUserLogin);
 
 module.exports = router;

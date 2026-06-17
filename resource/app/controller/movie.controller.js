@@ -13,6 +13,7 @@ const LogActionModel = require("../models/LogAction.model");
 const CityStatMovieWatchModel = require("../models/CityStatMovieWatch.model");
 const CityStatMovieRatingModel = require("../models/CityStatMovieRating.model");
 const { getCache } = require("../../helper/redis-cache");
+const { DateTime } = require("luxon");
 
 const controller = {};
 
@@ -534,11 +535,14 @@ controller.getDemographicMovieUserRating = async (req, res, next) => {
 controller.getMovieRecommendation = async (req, res, next) => {
   /* #swagger.tags = ['MOVIE']
     #swagger.summary = 'get movie recommendation'
-    #swagger.description = 'get movie recommendation based on user history and demographic'
+    #swagger.description = 'Retrieve movie recommendations based on user's personal like history, regional preferences, and top genres in their city.'
+    #swagger.parameters['limit'] = { default: 10, description: 'limit' }
+    #swagger.parameters['user_region'] = { default: 'Jakarta', description: 'user_region' }
+    #swagger.parameters['user_city'] = { default: 'North Jakarta', description: 'user_city' }
   */
 
   try {
-    const userId = req.login?.user_id;
+    const userId = req.login?.user_id.toString();
     const { limit = 10, user_region, user_city } = req.query;
     let recommendedMovies = [];
 
@@ -553,6 +557,27 @@ controller.getMovieRecommendation = async (req, res, next) => {
     ) {
       const targetGenres = Object.keys(userExistOnCache.genre_like_stats);
 
+      // ==========================================
+      // STRATEGI 1: REKOMENDASI BERDASARKAN LIKES USER
+      // ==========================================
+      const recommendScore = [];
+      for (const genre of targetGenres) {
+        const weight = userExistOnCache.genre_like_stats[genre] || 0;
+        recommendScore.push({
+          $cond: [
+            {
+              $regexMatch: {
+                input: "$genres_name",
+                regex: genre,
+                options: "i",
+              },
+            },
+            weight,
+            0,
+          ],
+        });
+      }
+
       recommendedMovies = await MovieModel.aggregate([
         {
           $match: {
@@ -566,22 +591,7 @@ controller.getMovieRecommendation = async (req, res, next) => {
         {
           $addFields: {
             recommendationScore: {
-              $add: targetGenres.map((genre) => {
-                const weight = userExistOnCache.genre_like_stats[genre] || 0;
-                return {
-                  $cond: [
-                    {
-                      $regexMatch: {
-                        input: "$genres_name",
-                        regex: genre,
-                        options: "i",
-                      },
-                    },
-                    weight,
-                    0,
-                  ],
-                };
-              }),
+              $add: recommendScore,
             },
           },
         },
@@ -866,6 +876,110 @@ controller.getMovieRecommendation = async (req, res, next) => {
   }
 };
 
-// GETn
+// GET MOVIE TRENDING
+controller.getMovieCurrentTrending = async (req, res, next) => {
+  /* #swagger.tags = ['MOVIE']
+    #swagger.summary = 'get movie recommendation'
+    #swagger.description = 'Retrieve trending movies based on the accumulated total of user likes.'
+    #swagger.parameters['limit'] = { default: 10, description: 'limit' }
+    #swagger.parameters['type_trending'] = { default: 'day', description: 'menampilkan data trending berdasarkan day | week | month | year' }
+  */
+  try {
+    const { limit = 10, type_trending } = req.query;
+    // 1. Validasi & Mapping tipe trending Luxon (mencegah error dari input user)
+    const validTrendingTypes = ["day", "week", "month", "year"];
+
+    const query = {};
+    const populateField = [
+      {
+        path: "movie_id",
+        model: "Movie",
+        select:
+          "_id title slug synopsis genres_name thumbnail_id release_date vote_rating",
+        populate: { path: "thumbnail_id", model: "Image", select: "_id path" },
+      },
+    ];
+
+    if (type_trending && validTrendingTypes.includes(type_trending)) {
+      const now = DateTime.now();
+      query.created_at = {
+        $gte: now.startOf(type_trending).toJSDate(),
+        $lte: now.endOf(type_trending).toJSDate(),
+      };
+    }
+
+    const result = await CityStatMovieLikeModel.find(query)
+      .populate(populateField)
+      .limit(Number(limit))
+      .sort({ total_users_likes: -1 })
+      .lean();
+
+    const movieResult = [];
+    for (const movie of result) {
+      movieResult.push(movie.movie_id);
+    }
+
+    res.status(200).json({
+      success: true,
+      messaging: "Movie trending retrieved successfully!",
+      data: movieResult,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET MOVIE POPULAR
+controller.getMovieCurrentPopular = async (req, res, next) => {
+  /* #swagger.tags = ['MOVIE']
+    #swagger.summary = 'get movie recommendation'
+    #swagger.description = 'Retrieve top-trending movies based on total view counts.'
+    #swagger.parameters['limit'] = { default: 10, description: 'limit' }
+    #swagger.parameters['type_trending'] = { default: 'day', description: 'menampilkan data trending berdasarkan day | week | month | year' }
+  */
+  try {
+    const { limit = 10, type_trending } = req.query;
+    // 1. Validasi & Mapping tipe trending Luxon (mencegah error dari input user)
+    const validTrendingTypes = ["day", "week", "month", "year"];
+
+    const query = {};
+    const populateField = [
+      {
+        path: "movie_id",
+        model: "Movie",
+        select:
+          "_id title slug synopsis genres_name thumbnail_id release_date vote_rating",
+        populate: { path: "thumbnail_id", model: "Image", select: "_id path" },
+      },
+    ];
+
+    if (type_trending && validTrendingTypes.includes(type_trending)) {
+      const now = DateTime.now();
+      query.created_at = {
+        $gte: now.startOf(type_trending).toJSDate(),
+        $lte: now.endOf(type_trending).toJSDate(),
+      };
+    }
+
+    const result = await CityStatMovieWatchModel.find(query)
+      .populate(populateField)
+      .limit(Number(limit))
+      .sort({ total_users_watches: -1 })
+      .lean();
+
+    const movieResult = [];
+    for (const movie of result) {
+      movieResult.push(movie.movie_id);
+    }
+
+    res.status(200).json({
+      success: true,
+      messaging: "Movie trending retrieved successfully!",
+      data: movieResult,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = controller;

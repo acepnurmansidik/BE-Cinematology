@@ -5,6 +5,7 @@ const {
   setCache,
 } = require("../../helper/redis-cache");
 const bcrypt = require("bcrypt");
+const { DateTime } = require("luxon");
 const { jwt } = require("../../utils/config");
 const RoleModel = require("../models/role.model");
 const PlanModel = require("../models/Plan.model");
@@ -533,6 +534,8 @@ controller.userMovieLike = async (req, res, next) => {
   */
   try {
     const payload = req.body;
+    const now = DateTime.now();
+    const date_format = now.startOf("day").toFormat("yyyy/LL/dd");
 
     if (req.login) {
       payload.guest_id = req.login.user_id;
@@ -591,10 +594,16 @@ controller.userMovieLike = async (req, res, next) => {
       ...payload.location_raw,
     };
     // logika penentuan increment dan decrement total like dan unlike
+    // ==========================================
+    // KONDISI 1: USER BARU MELAKUKAN 'LIKE' (Sebelumnya belum pernah vote)
+    // ==========================================
     if (dMovieLikeAfter.status_like == "like" && !dMovieLikeBefore) {
+      // console.log(
+      //   "KONDISI 1: USER BARU MELAKUKAN 'LIKE' (Sebelumnya belum pernah vote)",
+      // );
       dPayloadMovie.$inc = { total_likes: 1 };
       dPayloadEpisode.$inc = { total_likes: 1 };
-      dPayloadCityMovieLike.$inc = { total_genre_likes: 1 };
+      dPayloadCityMovieLike.$inc = { total_users_likes: 1 };
       dPayloadCityMovieGenreLike.$inc = { total_genre_likes: 1 };
 
       // user movie like stats update for demographic genre,
@@ -602,7 +611,14 @@ controller.userMovieLike = async (req, res, next) => {
         qUserGenreStat[`${everyGenre.replaceAll("-", "_")}`] = 1;
       }
     }
+
+    // ==========================================
+    // KONDISI 2: USER BARU MELAKUKAN 'DISLIKE' (Sebelumnya belum pernah vote)
+    // ==========================================
     if (dMovieLikeAfter.status_like == "dislike" && !dMovieLikeBefore) {
+      // console.log(
+      //   "KONDISI 2: USER BARU MELAKUKAN 'DISLIKE' (Sebelumnya belum pernah vote)",
+      // );
       dPayloadMovie.$inc = { total_unlikes: 1 };
       dPayloadEpisode.$inc = { total_unlikes: 1 };
       dPayloadCityMovieLike.$inc = { total_users_unlikes: 1 };
@@ -613,35 +629,56 @@ controller.userMovieLike = async (req, res, next) => {
         qUserGenreStat[`${everyGenre.replaceAll("-", "_")}`] = -1;
       }
     }
+
+    // ==========================================
+    // KONDISI 3: USER MEMBATALKAN 'LIKE' (Mengubah dari 'like' menjadi 'none')
+    // ==========================================
     if (
       dMovieLikeAfter.status_like == "none" &&
       dMovieLikeBefore &&
       dMovieLikeBefore.status_like == "like"
     ) {
+      // console.log(
+      //   "KONDISI 3: USER MEMBATALKAN 'LIKE' (Mengubah dari 'like' menjadi 'none')",
+      // );
       // dPayloadMovie.$inc = { total_likes: -1 };
       dPayloadEpisode.$inc = { total_likes: -1 };
-      dPayloadCityMovieLike.$inc = { total_genre_likes: -1 };
+      dPayloadCityMovieLike.$inc = { total_users_likes: -1 };
       dPayloadCityMovieGenreLike.$inc = { total_genre_likes: -1 };
     }
+
+    // ==========================================
+    // KONDISI 4: USER MEMBATALKAN 'DISLIKE' (Mengubah dari 'dislike' menjadi 'none')
+    // ==========================================
     if (
       dMovieLikeAfter.status_like == "none" &&
       dMovieLikeBefore &&
       dMovieLikeBefore.status_like == "dislike"
     ) {
+      // console.log(
+      //   "KONDISI 4: USER MEMBATALKAN 'DISLIKE' (Mengubah dari 'dislike' menjadi 'none')",
+      // );
       // dPayloadMovie.$inc = { total_unlikes: -1 };
       dPayloadEpisode.$inc = { total_unlikes: -1 };
       dPayloadCityMovieLike.$inc = { total_users_unlikes: -1 };
       dPayloadCityMovieGenreLike.$inc = { total_genre_unlikes: -1 };
     }
+
+    // ==========================================
+    // KONDISI 5: USER SWAP/PINDAH PILIHAN DARI 'DISLIKE' KE 'LIKE'
+    // ==========================================
     if (
       dMovieLikeAfter.status_like == "like" &&
       dMovieLikeBefore &&
       dMovieLikeBefore.status_like == "dislike"
     ) {
+      // console.log(
+      //   "KONDISI 5: USER SWAP/PINDAH PILIHAN DARI 'DISLIKE' KE 'LIKE'",
+      // );
       // dPayloadMovie.$inc = { total_likes: 1, total_unlikes: -1 };
       dPayloadEpisode.$inc = { total_likes: 1, total_unlikes: -1 };
       dPayloadCityMovieLike.$inc = {
-        total_genre_likes: 1,
+        total_users_likes: 1,
         total_users_unlikes: -1,
       };
       dPayloadCityMovieGenreLike.$inc = {
@@ -654,15 +691,23 @@ controller.userMovieLike = async (req, res, next) => {
         qUserGenreStat[`${everyGenre.replaceAll("-", "_")}`] = 1;
       }
     }
+
+    // ==========================================
+    // KONDISI 6: USER SWAP/PINDAH PILIHAN DARI 'LIKE' KE 'DISLIKE'
+    // Ada kemungkinan typo bawaan di '!dMovieLikeBefore', namun komentar disesuaikan alur logika kodenya
+    // ==========================================
     if (
       dMovieLikeAfter.status_like == "dislike" &&
       !dMovieLikeBefore &&
       dMovieLikeBefore.status_like == "like"
     ) {
+      // console.log(
+      //   "KONDISI 6: USER SWAP/PINDAH PILIHAN DARI 'LIKE' KE 'DISLIKE'",
+      // );
       // dPayloadMovie.$inc = { total_unlikes: 1,total_likes:-1 };
       dPayloadEpisode.$inc = { total_unlikes: 1, total_likes: -1 };
       dPayloadCityMovieLike.$inc = {
-        total_genre_likes: -1,
+        total_users_likes: -1,
         total_users_unlikes: 1,
       };
       dPayloadCityMovieGenreLike.$inc = {
@@ -714,11 +759,9 @@ controller.userMovieLike = async (req, res, next) => {
     );
 
     for (const everyGenre of dMovie.genres) {
-      const result = await CityStatMovieGenreModel.findOne({
-        genre_id: everyGenre,
-      }).lean();
       await CityStatMovieGenreModel.findOneAndUpdate(
         {
+          date_format,
           genre_id: everyGenre,
           city: payload.location_raw.city || "Unknown",
           continent: payload.location_raw.continent,
@@ -734,6 +777,7 @@ controller.userMovieLike = async (req, res, next) => {
     dPayloadCityMovieLike.movie_name = dMovie.title;
     await CityStatMovieLikeModel.findOneAndUpdate(
       {
+        date_format,
         movie_id: payload.movie_id,
         city: payload.location_raw.city || "Unknown",
         continent: payload.location_raw.continent,
@@ -798,6 +842,8 @@ controller.userMovieWatchHistory = async (req, res, next) => {
   */
   try {
     const payload = req.body;
+    const now = DateTime.now();
+    const date_format = now.startOf("day").toFormat("yyyy/LL/dd");
 
     if (req.login) {
       payload.guest_id = req.login.user_id;
@@ -845,6 +891,7 @@ controller.userMovieWatchHistory = async (req, res, next) => {
 
     await CityStatMovieWatchModel.findOneAndUpdate(
       {
+        date_format,
         movie_id: payload.movie_id,
         city: payload.location_raw.city || "Unknown",
         continent: payload.location_raw.continent,
@@ -885,6 +932,7 @@ controller.userMovieWatchHistory = async (req, res, next) => {
 
       await CityStatMovieWatchModel.findOneAndUpdate(
         {
+          date_format,
           movie_id: payload.movie_id,
           city: payload.location_raw.city || "Unknown",
           continent: payload.location_raw.continent,

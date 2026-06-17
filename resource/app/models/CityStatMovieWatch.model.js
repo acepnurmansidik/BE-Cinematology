@@ -31,6 +31,7 @@ const CityStatMovieWatchSchema = new Schema(
     regionName: { type: String, default: null }, // Contoh: Jakarta
     city: { type: String, required: [true, "City wajib diisi"] }, // Contoh: North Jakarta
     timezone: { type: String, default: "Asia/Jakarta" },
+    date_format: { type: String, default: "" },
 
     // Metadata tambahan jika diperlukan (opsional)
     location_raw: {
@@ -58,7 +59,7 @@ const CityStatMovieWatchSchema = new Schema(
 // Compound Index: Unik berdasarkan film, provinsi (region), dan kota.
 // Ini sangat penting agar statistik tidak duplikat untuk kota yang sama.
 CityStatMovieWatchSchema.index(
-  { movie_id: 1, regionName: 1, city: 1 },
+  { movie_id: 1, regionName: 1, city: 1, date_format: 1 },
   { unique: true },
 );
 

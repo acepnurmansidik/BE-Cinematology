@@ -1,6 +1,17 @@
 const router = require("express").Router();
 const controller = require("../controller/users.controller");
+const {
+  AuthorizeUserLogin,
+  AuthorizeOptionalLogin,
+} = require("../../middleware/authentification");
 
+router.use(AuthorizeOptionalLogin);
+// user make actions with movies
+router.get("/rating-movie", controller.userMovieRating);
+router.put("/like-movie", controller.userMovieLike);
+router.put("/watch-movie", controller.userMovieWatchHistory);
+
+router.use(AuthorizeUserLogin);
 // uesr make transactions
 router.get("/transactions", controller.getAllTransaction);
 router.post("/:planId/transaction", controller.createUserTransaction);
@@ -9,11 +20,6 @@ router.get("/history-transaction", controller.getUserTransaction);
 
 // history action user with movies
 router.get("/history-watch-movie", controller.getAllMovieHistoryUser);
-
-// user make actions with movies
-router.get("/rating-movie", controller.userMovieRating);
-router.put("/like-movie", controller.userMovieLike);
-router.put("/watch-movie", controller.userMovieWatchHistory);
 
 // FOR ADMIN ONLY =========================================================
 // demographic analytic

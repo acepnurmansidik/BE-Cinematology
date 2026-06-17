@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const controller = require("../controller/movie.controller");
+const { AuthorizeUserLogin } = require("../../middleware/authentification");
 
 router.get("/", controller.getAllMovieAdminOnly);
 router.post("/", controller.createMovieAdminOnly);
@@ -15,6 +16,9 @@ router.get(
   controller.getDemographicMovieUserRating,
 );
 
+router.get("/movie-trending", controller.getMovieCurrentTrending);
+router.get("/movie-populer", controller.getMovieCurrentPopular);
+router.use(AuthorizeUserLogin);
 // Movie Recommendation
 router.get("/recommendation", controller.getMovieRecommendation);
 
