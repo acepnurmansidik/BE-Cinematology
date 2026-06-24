@@ -14,13 +14,13 @@ controller.getAllAuthor = async (req, res, next) => {
   */
   try {
     const query = {};
-    const populateField = [];
+    const populateField = [
+      { path: "avatar_id", model: "Image", select: "_id path" },
+    ];
     const { search, type, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
     if (query.length) query.type = type;
-    const arrFilter = [
-      { path: "avatar_id", model: "Image", select: "_id path" },
-    ];
+    const arrFilter = [];
     if (search) {
       arrFilter.push({ name: { $regex: search, $options: "i" } });
     }

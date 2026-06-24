@@ -12,6 +12,7 @@ const authorRouter = require("../resource/app/router/author.route");
 const studioRouter = require("../resource/app/router/studio.routes");
 const moduleRouter = require("../resource/app/router/module.routes");
 const refparamRouter = require("../resource/app/router/reffParam.routes");
+const scheduleRouter = require("../resource/app/router/schedule-movie.routes");
 const {
   AuthorizeUserLogin,
 } = require("../resource/middleware/authentification");
@@ -20,6 +21,7 @@ router.use("/auth", authRouter);
 router.use("/plans", planRouter);
 
 router.use("/role", roleRouter);
+router.use("/schedule", scheduleRouter);
 router.use("/genre", genreRouter);
 router.use("/actor", actorRouter);
 router.use("/movie", movieRouter);

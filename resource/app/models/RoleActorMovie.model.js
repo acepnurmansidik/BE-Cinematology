@@ -26,5 +26,3 @@ const RoleActorMovieSchema = new Schema(
 );
 
 module.exports = model("RoleActorMovie", RoleActorMovieSchema);
-
-module.exports = model("RoleActorMovie", RoleActorMovieSchema);
