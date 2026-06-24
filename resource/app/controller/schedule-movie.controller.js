@@ -7,9 +7,13 @@ controller.getAllScheduleGroup = async (req, res, next) => {
   /*
     #swagger.tags = ['SCHEDULE']
     #swagger.summary = 'Schedule'
-    #swagger.description = 'Retrieve reference groups'
+    #swagger.description = 'Retrieve reference groups with active due date and genre filter'
+    #swagger.parameters['genre'] = { in: 'query', type: 'string', description: 'Filter by movie genre name' }
   */
   try {
+    const { genre } = req.query; // Mengambil filter genre dari query params (?genre=Action)
+    const today = new Date(); // Mengambil tanggal hari ini untuk memvalidasi due_date
+
     // 1. Define the master list of all days in English
     const allDays = [
       "Monday",
@@ -21,26 +25,47 @@ controller.getAllScheduleGroup = async (req, res, next) => {
       "Sunday",
     ];
 
-    // 2. Run the Aggregation Pipeline
-    const aggregationResult = await ScheduleMovieModel.aggregate([
-      { $match: {} },
+    // 2. Setup match conditions untuk tahapan Aggregation
+    // Filter schedule yang due_date nya masih berjalan (>= hari ini) dan belum dihapus
+    const initialMatch = {
+      is_delete: { $ne: true },
+      due_date: { $gte: today },
+    };
+
+    const pipeline = [
+      { $match: initialMatch },
       { $sort: { _id: -1 } },
 
       // Populate movie_id (Equivalent to .populate())
       {
         $lookup: {
-          from: "movies", // Make sure this matches your MongoDB collection name (case-sensitive)
+          from: "movies",
           localField: "movie_id",
           foreignField: "_id",
           as: "movie_id",
         },
       },
-      { $unwind: { path: "$movie_id", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$movie_id", preserveNullAndEmptyArrays: false } }, // Ubah ke false agar schedule tanpa movie valid otomatis terbuang saat difilter
+
+      // --- TAHAPAN FILTER GENRE (DILAKUKAN SETELAH LOOKUP MOVIE) ---
+      ...(genre
+        ? [
+            {
+              $match: {
+                "movie_id.genres_name": {
+                  // Menggunakan regex untuk mencari kata di dalam string panjang yang dipisah koma
+                  $regex: genre.trim(),
+                  $options: "i",
+                },
+              },
+            },
+          ]
+        : []),
 
       // Populate thumbnail_id inside movie_id
       {
         $lookup: {
-          from: "images", // Make sure this matches your MongoDB collection name
+          from: "images",
           localField: "movie_id.thumbnail_id",
           foreignField: "_id",
           as: "movie_id.thumbnail_id",
@@ -56,7 +81,7 @@ controller.getAllScheduleGroup = async (req, res, next) => {
       // Grouping stage by 'day'
       {
         $group: {
-          _id: "$day", // Group by day field
+          _id: "$day",
           movies: {
             $push: {
               _id: "$movie_id._id",
@@ -84,18 +109,19 @@ controller.getAllScheduleGroup = async (req, res, next) => {
           movies: 1,
         },
       },
-    ]);
+    ];
+
+    // Jalankan Aggregation Pipeline
+    const aggregationResult = await ScheduleMovieModel.aggregate(pipeline);
 
     // 3. Map the master array to guarantee all 7 days are included
     const finalResult = allDays.map((day) => {
-      // Find if this specific day exists in the aggregation result
       const foundData = aggregationResult.find(
         (item) => item.day?.toLowerCase() === day.toLowerCase(),
       );
 
       return {
         day: day,
-        // If data is found, return its movies. If not, or if it's empty, default to []
         movies:
           foundData && foundData.movies
             ? foundData.movies.filter((m) => m._id !== null)
@@ -106,7 +132,7 @@ controller.getAllScheduleGroup = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Data retrieved successfully!",
-      data: finalResult, // Returns a clean, complete array of 7 days
+      data: finalResult,
     });
   } catch (err) {
     next(err);
