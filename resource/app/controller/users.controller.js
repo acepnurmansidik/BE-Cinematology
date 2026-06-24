@@ -269,14 +269,25 @@ controller.getAllMovieHistoryUser = async (req, res, next) => {
     #swagger.tags = ['Users']
     #swagger.summary = 'get user movie history for customer'
     #swagger.description = 'get user movie history'
+    #swagger.parameters['guest_id'] = { default: '', description: 'guest id for user not login' }
     #swagger.parameters['search'] = { default: '', description: 'search by value' }
     #swagger.parameters['limit'] = { default: 10, description: 'limit' }
     #swagger.parameters['page'] = { default: 1, description: 'page' }
   */
   try {
     const query = {};
-    const populateField = [];
-    query.user_id = req.login._id;
+    const populateField = [
+      {
+        path: "movie_id",
+        model: "Movie",
+        select:
+          "_id title slug synopsis genres_name thumbnail_id release_date vote_rating",
+        populate: { path: "thumbnail_id", model: "Image", select: "_id path" },
+      },
+    ];
+    query.user_id = req.login
+      ? req.login.user_id.toString()
+      : req.query.guest_id;
     const { search, type, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
     if (query.length) query.type = type;
@@ -287,13 +298,38 @@ controller.getAllMovieHistoryUser = async (req, res, next) => {
     if (arrFilter.length) query["$or"] = arrFilter;
 
     const page_size = await WatchHistoryModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(WatchHistoryModel, {
-      query,
-      populateField,
-      skip,
-      limit,
+    const result = await crudServices
+      .findAllPagination(WatchHistoryModel, {
+        query,
+        populateField,
+        skip,
+        limit,
+      })
+      .then((stats) =>
+        stats.data.map((item) => {
+          const movieData =
+            item.movie_id?._doc ||
+            (typeof item.movie_id?.toObject === "function"
+              ? item.movie_id.toObject()
+              : item.movie_id);
+
+          return {
+            ...movieData,
+            duration_seconds: item.duration_seconds,
+            last_watched_at: item.last_watched_at,
+            progress_seconds: item.progress_seconds,
+            episode_id: item.episode_id,
+          };
+        }),
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Data retrieved successfully!",
+      data: result,
+      page_size,
+      current_page: Number(page),
     });
-    res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
   }

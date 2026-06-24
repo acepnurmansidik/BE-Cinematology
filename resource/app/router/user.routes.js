@@ -11,15 +11,15 @@ router.get("/rating-movie", controller.userMovieRating);
 router.put("/like-movie", controller.userMovieLike);
 router.put("/watch-movie", controller.userMovieWatchHistory);
 
+// history action user with movies
+router.get("/me/watch-history", controller.getAllMovieHistoryUser);
+
 router.use(AuthorizeUserLogin);
 // uesr make transactions
 router.get("/transactions", controller.getAllTransaction);
 router.post("/:planId/transaction", controller.createUserTransaction);
 router.put("/:gatewayId/payment", controller.userPayment);
 router.get("/history-transaction", controller.getUserTransaction);
-
-// history action user with movies
-router.get("/history-watch-movie", controller.getAllMovieHistoryUser);
 
 // FOR ADMIN ONLY =========================================================
 // demographic analytic
