@@ -915,17 +915,13 @@ controller.getMovieCurrentTrending = async (req, res, next) => {
       .populate(populateField)
       .limit(Number(limit))
       .sort({ total_users_likes: -1 })
-      .lean();
-
-    const movieResult = [];
-    for (const movie of result) {
-      movieResult.push(movie.movie_id);
-    }
+      .lean()
+      .then((stats) => stats.map((stat) => stat.movie_id));
 
     res.status(200).json({
       success: true,
       messaging: "Movie trending retrieved successfully!",
-      data: movieResult,
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -968,12 +964,8 @@ controller.getMovieCurrentPopular = async (req, res, next) => {
       .populate(populateField)
       .limit(Number(limit))
       .sort({ total_users_watches: -1 })
-      .lean();
-
-    const movieResult = [];
-    for (const movie of result) {
-      movieResult.push(movie.movie_id);
-    }
+      .lean()
+      .then((stats) => stats.map((stat) => stat.movie_id));
 
     res.status(200).json({
       success: true,
@@ -1014,23 +1006,24 @@ controller.getNewReleaseEpisode = async (req, res, next) => {
       .populate(populateField)
       .limit(Number(limit))
       .sort({ created_at: -1 })
-      .lean();
+      .lean()
+      .then((episodes) =>
+        episodes.map((episode) => ({
+          // Menggunakan ?. untuk mengantisipasi jika movie_id ternyata null/tidak ketemu
+          ...(episode.movie_id ?? {}),
 
-    const episodeResult = [];
-    for (const episode of result) {
-      episodeResult.push({
-        ...episode.movie_id,
-        episode_id: episode.episode_id._id,
-        episode_title: episode.episode_id.title,
-        episode_number: episode.episode_id.episode_number,
-        episode_slug: episode.episode_id.slug,
-      });
-    }
+          // Menggunakan optional chaining (?.) agar tidak crash jika episode_id null
+          episode_id: episode.episode_id?._id,
+          episode_title: episode.episode_id?.title,
+          episode_number: episode.episode_id?.episode_number,
+          episode_slug: episode.episode_id?.slug,
+        })),
+      );
 
     res.status(200).json({
       success: true,
       messaging: "Episode new release retrieved successfully!",
-      data: episodeResult,
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -1046,7 +1039,7 @@ controller.getTrendingEpisode = async (req, res, next) => {
     #swagger.parameters['type_trending'] = { default: 'day', description: 'menampilkan data trending berdasarkan day | week | month | year' }
   */
   try {
-    const { limit = 10 } = req.query;
+    const { limit = 10, type_trending } = req.query;
     // 1. Validasi & Mapping tipe trending Luxon (mencegah error dari input user)
     const validTrendingTypes = ["day", "week", "month", "year"];
 
@@ -1078,23 +1071,24 @@ controller.getTrendingEpisode = async (req, res, next) => {
       .populate(populateField)
       .limit(Number(limit))
       .sort({ total_users_likes: -1 })
-      .lean();
+      .lean()
+      .then((episodes) =>
+        episodes.map((episode) => ({
+          // Menggunakan ?. untuk mengantisipasi jika movie_id ternyata null/tidak ketemu
+          ...(episode.movie_id ?? {}),
 
-    const episodeResult = [];
-    for (const episode of result) {
-      episodeResult.push({
-        ...episode.movie_id,
-        episode_id: episode.episode_id._id,
-        episode_title: episode.episode_id.title,
-        episode_number: episode.episode_id.episode_number,
-        episode_slug: episode.episode_id.slug,
-      });
-    }
+          // Menggunakan optional chaining (?.) agar tidak crash jika episode_id null
+          episode_id: episode.episode_id._id,
+          episode_title: episode.episode_id.title,
+          episode_number: episode.episode_id.episode_number,
+          episode_slug: episode.episode_id.slug,
+        })),
+      );
 
     res.status(200).json({
       success: true,
       messaging: "Episode trending retrieved successfully!",
-      data: episodeResult,
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -1110,7 +1104,7 @@ controller.getPopularEpisode = async (req, res, next) => {
     #swagger.parameters['type_trending'] = { default: 'day', description: 'menampilkan data trending berdasarkan day | week | month | year' }
   */
   try {
-    const { limit = 10 } = req.query;
+    const { limit = 10, type_trending } = req.query;
     // 1. Validasi & Mapping tipe trending Luxon (mencegah error dari input user)
     const validTrendingTypes = ["day", "week", "month", "year"];
 
@@ -1142,18 +1136,19 @@ controller.getPopularEpisode = async (req, res, next) => {
       .populate(populateField)
       .limit(Number(limit))
       .sort({ total_users_likes: -1 })
-      .lean();
+      .lean()
+      .then((episodes) =>
+        episodes.map((episode) => ({
+          // Menggunakan ?. untuk mengantisipasi jika movie_id ternyata null/tidak ketemu
+          ...(episode.movie_id ?? {}),
 
-    const episodeResult = [];
-    for (const episode of result) {
-      episodeResult.push({
-        ...episode.movie_id,
-        episode_id: episode.episode_id._id,
-        episode_title: episode.episode_id.title,
-        episode_number: episode.episode_id.episode_number,
-        episode_slug: episode.episode_id.slug,
-      });
-    }
+          // Menggunakan optional chaining (?.) agar tidak crash jika episode_id null
+          episode_id: episode.episode_id._id,
+          episode_title: episode.episode_id.title,
+          episode_number: episode.episode_id.episode_number,
+          episode_slug: episode.episode_id.slug,
+        })),
+      );
 
     res.status(200).json({
       success: true,

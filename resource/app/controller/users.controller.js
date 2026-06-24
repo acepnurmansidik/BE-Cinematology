@@ -28,6 +28,7 @@ const CityStatMovieWatchModel = require("../models/CityStatMovieWatch.model");
 const CityStatMovieGenreModel = require("../models/CityStatMovieGenre.model");
 const CityStatMovieRatingModel = require("../models/CityStatMovieRating.model");
 const CityStatEpisodeLikeModel = require("../models/CityStatEpisodeLike.model");
+const CityStatEpisodeWatchModel = require("../models/CityStatEpisodeWatch.model");
 
 const controller = {};
 
@@ -904,19 +905,6 @@ controller.userMovieWatchHistory = async (req, res, next) => {
       });
     }
 
-    await CityStatMovieWatchModel.findOneAndUpdate(
-      {
-        date_format,
-        movie_id: payload.movie_id,
-        city: payload.location_raw.city || "Unknown",
-        continent: payload.location_raw.continent,
-        country: payload.location_raw.country,
-        regionName: payload.location_raw.regionName,
-      },
-      { $inc: { total_users_watches: 1 }, ...payload.location_raw, ...payload },
-      { upsert: true, returnDocument: "after", session },
-    );
-
     const dMovieHistoryUpdate = await WatchHistoryModel.findOneAndUpdate(
       query,
       payload,
@@ -961,6 +949,25 @@ controller.userMovieWatchHistory = async (req, res, next) => {
         },
         { upsert: true, returnDocument: "after", session },
       );
+      if (dMovie.type == "series") {
+        await CityStatEpisodeWatchModel.findOneAndUpdate(
+          {
+            date_format,
+            movie_id: payload.movie_id,
+            city: payload.location_raw.city || "Unknown",
+            continent: payload.location_raw.continent,
+            country: payload.location_raw.country,
+            regionName: payload.location_raw.regionName,
+            episode_id: payload.episode_id || null,
+          },
+          {
+            $inc: { total_users_watches: 1 },
+            ...payload.location_raw,
+            ...payload,
+          },
+          { upsert: true, returnDocument: "after", session },
+        );
+      }
       await MovieModel.findOneAndUpdate(
         { _id: payload.movie_id },
         { $inc: { total_watch: 1 } },

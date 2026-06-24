@@ -24,9 +24,9 @@ const server = http.createServer(app);
  * Initialize Socket.io with Redis Adapter
  * Kita panggil fungsi ini di sini agar 'io' menempel pada server yang benar.
  */
-socketManager(server);
 
 async function Runner() {
+  socketManager(server);
   await connectDB();
 
   // Menjalankan server
