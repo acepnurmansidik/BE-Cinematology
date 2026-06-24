@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const globalService = require("../../helper/global-func");
-const { default: uniqueValidator } = require("mongoose-unique-validator");
 const { model, Schema } = mongoose;
 
 const StudioSchema = new Schema(
@@ -72,9 +71,20 @@ const StudioSchema = new Schema(
   },
 );
 
-StudioSchema.plugin(uniqueValidator, {
-  message: "Studio name must be unique!",
-});
+/**
+ * 🔥 Perbaikan ERR_REQUIRE_ESM
+ * Menggunakan Dynamic Import agar CommonJS dapat membaca package ESM
+ */
+import("mongoose-unique-validator")
+  .then((module) => {
+    const uniqueValidator = module.default;
+    StudioSchema.plugin(uniqueValidator, {
+      message: "Studio name must be unique!",
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Gagal memuat mongoose-unique-validator:", err);
+  });
 
 // Pre-save hook
 StudioSchema.pre("validate", function (next) {

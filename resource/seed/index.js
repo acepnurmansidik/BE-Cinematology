@@ -1,12 +1,12 @@
-const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const AuthUserModel = require("../app/models/auth.model");
+const mongoose = require("mongoose");
 const roleModel = require("../app/models/role.model");
+const globalService = require("../helper/global-func");
 const usersModel = require("../app/models/users.model");
-const ModuleModel = require("../app/models/Module.model");
 const GenreModel = require("../app/models/Genre.model");
 const { USER_IAM } = require("../utils/etc/permission");
-const globalService = require("../helper/global-func");
+const ModuleModel = require("../app/models/Module.model");
+const AuthUserModel = require("../app/models/auth.model");
 
 const runMainSeeder = async () => {
   const session = await mongoose.startSession();
@@ -37,7 +37,6 @@ const runMainSeeder = async () => {
     // ==========================================
     // SEEDER 1: PROSES MEMBUAT MODULE
     // ==========================================
-    console.log("✅ Modules started seeder!");
     for (const mod of USER_IAM) {
       const processedModule = {
         name: mod.name,
@@ -62,13 +61,12 @@ const runMainSeeder = async () => {
         { upsert: true, session },
       );
     }
-    console.log("✅ Modules upserted successfully!");
+    console.log("✅ [SEEDERS] Modules upserted successfully!");
 
     // ==========================================
     // SEEDER 2: PROSES MEMBUAT ROLES
     // ==========================================
 
-    console.log("✅ Role started seeder!");
     const allModules = await ModuleModel.find({}).session(session);
 
     const roleSlug = "super-ultraman";
@@ -161,11 +159,11 @@ const runMainSeeder = async () => {
       { $set: superUltramanData },
       { upsert: true, returnDocument: "after", session }, // Gunakan returnDocument: 'after'
     );
+    console.log("✅ [SEEDERS] Role upserted successfully!");
 
     // ==========================================
     // SEEDER 3: PROSES MEMBUAT AKUN SUPER ADMIN
     // ==========================================
-    console.log("Seeding Auth User...");
     const adminEmail = "superultraman@mail.com";
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash("password123", salt);
@@ -178,10 +176,9 @@ const runMainSeeder = async () => {
         password: hashedPassword,
         is_delete: false,
       },
-      { upsert: true, new: true, session },
+      { upsert: true, returnDocument: "after", session },
     );
 
-    console.log("Seeding Super Admin Profile...");
     await usersModel.findOneAndUpdate(
       { auth_id: authUser._id },
       {
@@ -191,13 +188,12 @@ const runMainSeeder = async () => {
         device_token: "",
         subscription_info: { status: "none" },
       },
-      { upsert: true, new: true, session },
+      { upsert: true, returnDocument: "after", session },
     );
 
-    console.log("✅ Super Admin account & Role linked successfully!");
+    console.log("✅ [SEEDERS] Super Admin account & Role linked successfully!");
 
     await session.commitTransaction();
-    console.log("\n=== Main Seeder completed successfully! ===");
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
     console.error("❌ Seeder failed with error:", error);
@@ -284,10 +280,9 @@ const runSecondarySeeder = async () => {
         },
       );
     }
-    console.log("✅ Genres seeded successfully!");
+    console.log("✅ [SEEDERS] Genres upserted successfully!");
 
     await session.commitTransaction();
-    console.log("\n=== Secondary Seeder completed successfully! ===");
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
     console.error("❌ Seeder failed with error:", error);

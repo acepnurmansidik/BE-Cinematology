@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const globalService = require("../../helper/global-func");
-const { default: uniqueValidator } = require("mongoose-unique-validator");
 const { model, Schema } = mongoose;
 
 const GenreSchema = new Schema(
@@ -43,9 +42,21 @@ const GenreSchema = new Schema(
   },
 );
 
-GenreSchema.plugin(uniqueValidator, {
-  message: "Name must be unique!",
-});
+/**
+ * 🔥 Perbaikan ERR_REQUIRE_ESM
+ * Menggunakan Dynamic Import agar CommonJS dapat membaca package ESM
+ */
+import("mongoose-unique-validator")
+  .then((module) => {
+    const uniqueValidator = module.default;
+    GenreSchema.plugin(uniqueValidator, {
+      message: "Name must be unique!",
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Gagal memuat mongoose-unique-validator:", err);
+  });
+
 // --- MIDDLEWARE / HOOKS ---
 // Digunakan untuk otomatisasi pembuatan slug sebelum validasi data
 GenreSchema.pre("validate", function (next) {

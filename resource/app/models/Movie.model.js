@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const globalService = require("../../helper/global-func");
-const { default: uniqueValidator } = require("mongoose-unique-validator");
 const { model, Schema } = mongoose;
 
 const MovieSchema = new Schema(
@@ -157,9 +156,20 @@ const MovieSchema = new Schema(
   },
 );
 
-MovieSchema.plugin(uniqueValidator, {
-  message: "Movie title must be unique!",
-});
+/**
+ * 🔥 Perbaikan ERR_REQUIRE_ESM
+ * Menggunakan Dynamic Import agar CommonJS dapat membaca package ESM
+ */
+import("mongoose-unique-validator")
+  .then((module) => {
+    const uniqueValidator = module.default;
+    MovieSchema.plugin(uniqueValidator, {
+      message: "Movie title must be unique!",
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Gagal memuat mongoose-unique-validator:", err);
+  });
 
 MovieSchema.pre("validate", function (next) {
   if (!this.slug && this.title) {
