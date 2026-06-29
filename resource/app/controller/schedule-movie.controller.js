@@ -1,5 +1,6 @@
 const crudServices = require("../../helper/crudService");
 const globalService = require("../../helper/global-func");
+const { getOrSetCache } = require("../../helper/redis-cache");
 const ScheduleMovieModel = require("../models/ScheduleMovie.model");
 const controller = {};
 
@@ -7,132 +8,178 @@ controller.getAllScheduleGroup = async (req, res, next) => {
   /*
     #swagger.tags = ['SCHEDULE']
     #swagger.summary = 'Schedule'
-    #swagger.description = 'Retrieve reference groups with active due date and genre filter'
-    #swagger.parameters['genre'] = { in: 'query', type: 'string', description: 'Filter by movie genre name' }
+    #swagger.description = 'Retrieve reference groups with active due date and genre filter supporting Movie and Season models'
+    #swagger.parameters['genre'] = { in: 'query', type: 'string', description: 'Filter by movie or season genre name' }
   */
   try {
-    const { genre } = req.query; // Mengambil filter genre dari query params (?genre=Action)
-    const today = new Date(); // Mengambil tanggal hari ini untuk memvalidasi due_date
+    const { genre } = req.query;
+    const today = new Date();
 
-    // 1. Define the master list of all days in English
-    const allDays = [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday",
-    ];
+    const cacheKey = "schedule:movie";
 
-    // 2. Setup match conditions untuk tahapan Aggregation
-    // Filter schedule yang due_date nya masih berjalan (>= hari ini) dan belum dihapus
-    const initialMatch = {
-      is_delete: { $ne: true },
-      due_date: { $gte: today },
-    };
+    const newResult = await getOrSetCache({
+      key: cacheKey,
+      fetchFunction: async () => {
+        // 1. Define the master list of all days in English
+        const allDays = [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
 
-    const pipeline = [
-      { $match: initialMatch },
-      { $sort: { _id: -1 } },
+        // 2. Setup match conditions awal untuk Schedule
+        const initialMatch = {
+          is_delete: { $ne: true },
+          due_date: { $gte: today },
+        };
 
-      // Populate movie_id (Equivalent to .populate())
-      {
-        $lookup: {
-          from: "movies",
-          localField: "movie_id",
-          foreignField: "_id",
-          as: "movie_id",
-        },
-      },
-      { $unwind: { path: "$movie_id", preserveNullAndEmptyArrays: false } }, // Ubah ke false agar schedule tanpa movie valid otomatis terbuang saat difilter
+        const pipeline = [
+          { $match: initialMatch },
+          { $sort: { _id: -1 } },
 
-      // --- TAHAPAN FILTER GENRE (DILAKUKAN SETELAH LOOKUP MOVIE) ---
-      ...(genre
-        ? [
-            {
-              $match: {
-                "movie_id.genres_name": {
-                  // Menggunakan regex untuk mencari kata di dalam string panjang yang dipisah koma
-                  $regex: genre.trim(),
-                  $options: "i",
+          // --- TAHAPAN LOOKUP DINAMIS (Mendukung Movie & Season) ---
+          // Lookup ke koleksi 'movies'
+          {
+            $lookup: {
+              from: "movies",
+              localField: "movie_id",
+              foreignField: "_id",
+              as: "movie_data",
+            },
+          },
+          // Lookup ke koleksi 'seasons'
+          {
+            $lookup: {
+              from: "seasons",
+              localField: "movie_id",
+              foreignField: "_id",
+              as: "season_data",
+            },
+          },
+
+          // Satukan hasil lookup ke dalam satu object target utama berdasarkan on_model
+          {
+            $project: {
+              day: 1,
+              time: 1,
+              start_date: 1,
+              due_date: 1,
+              on_model: 1,
+              raw_id: "$movie_id",
+              // Jika on_model adalah Movie, ambil element pertama movie_data, jika Season ambil season_data
+              resolved_content: {
+                $cond: {
+                  if: { $eq: ["$on_model", "Movie"] },
+                  then: { $arrayElemAt: ["$movie_data", 0] },
+                  else: { $arrayElemAt: ["$season_data", 0] },
                 },
               },
             },
-          ]
-        : []),
+          },
 
-      // Populate thumbnail_id inside movie_id
-      {
-        $lookup: {
-          from: "images",
-          localField: "movie_id.thumbnail_id",
-          foreignField: "_id",
-          as: "movie_id.thumbnail_id",
-        },
-      },
-      {
-        $unwind: {
-          path: "$movie_id.thumbnail_id",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
+          // Filter dokumen yang content-nya tidak ditemukan (misal ID salah atau data induk dihapus)
+          { $match: { resolved_content: { $exists: true, $ne: null } } },
 
-      // Grouping stage by 'day'
-      {
-        $group: {
-          _id: "$day",
-          movies: {
-            $push: {
-              _id: "$movie_id._id",
-              title: "$movie_id.title",
-              slug: "$movie_id.slug",
-              genres_name: "$movie_id.genres_name",
-              thumbnail: {
-                _id: "$movie_id.thumbnail_id._id",
-                path: "$movie_id.thumbnail_id.path",
-              },
-              release_date: "$movie_id.release_date",
-              time: "$time",
-              start_date: "$start_date",
-              due_date: "$due_date",
+          // --- TAHAPAN FILTER GENRE (DINAMIS BERDASARKAN STRING/ARRAY) ---
+          ...(genre
+            ? [
+                {
+                  $match: {
+                    "resolved_content.genres_name": {
+                      $regex: genre.trim(),
+                      $options: "i",
+                    },
+                  },
+                },
+              ]
+            : []),
+
+          // --- TAHAPAN POPULATE THUMBNAIL INSIDE CONTENT ---
+          {
+            $lookup: {
+              from: "images",
+              localField: "resolved_content.thumbnail_id",
+              foreignField: "_id",
+              as: "resolved_content.thumbnail_id",
             },
           },
-        },
+          {
+            $unwind: {
+              path: "$resolved_content.thumbnail_id",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+
+          // --- STAGE GROUPING BY DAY ---
+          {
+            $group: {
+              _id: "$day",
+              movies: {
+                $push: {
+                  _id: "$resolved_content._id",
+                  // Menggunakan operator $ifNull agar aman jika field penamaan di DB berbeda (title vs season_name)
+                  title: {
+                    $ifNull: [
+                      "$resolved_content.title",
+                      "$resolved_content.season_name",
+                    ],
+                  },
+                  slug: "$resolved_content.slug",
+                  genres_name: "$resolved_content.genres_name",
+                  on_model: "$on_model", // Menyertakan penanda tipe konten untuk Front-End
+                  thumbnail: {
+                    _id: "$resolved_content.thumbnail_id._id",
+                    path: "$resolved_content.thumbnail_id.path",
+                  },
+                  release_date: "$resolved_content.release_date",
+                  time: "$time",
+                  start_date: "$start_date",
+                  due_date: "$due_date",
+                },
+              },
+            },
+          },
+
+          // Final Projection untuk membersihkan output keys
+          {
+            $project: {
+              _id: 0,
+              day: "$_id",
+              movies: 1,
+            },
+          },
+        ];
+
+        // Jalankan Aggregation Pipeline
+        const aggregationResult = await ScheduleMovieModel.aggregate(pipeline);
+
+        // 3. Map the master array to guarantee all 7 days are included
+        const finalResult = allDays.map((day) => {
+          const foundData = aggregationResult.find(
+            (item) => item.day?.toLowerCase() === day.toLowerCase(),
+          );
+
+          return {
+            day: day,
+            movies:
+              foundData && foundData.movies
+                ? foundData.movies.filter((m) => m._id !== null)
+                : [],
+          };
+        });
+
+        return finalResult;
       },
-
-      // Final Projection to clean up the keys
-      {
-        $project: {
-          _id: 0,
-          day: "$_id",
-          movies: 1,
-        },
-      },
-    ];
-
-    // Jalankan Aggregation Pipeline
-    const aggregationResult = await ScheduleMovieModel.aggregate(pipeline);
-
-    // 3. Map the master array to guarantee all 7 days are included
-    const finalResult = allDays.map((day) => {
-      const foundData = aggregationResult.find(
-        (item) => item.day?.toLowerCase() === day.toLowerCase(),
-      );
-
-      return {
-        day: day,
-        movies:
-          foundData && foundData.movies
-            ? foundData.movies.filter((m) => m._id !== null)
-            : [],
-      };
     });
 
     res.status(200).json({
       success: true,
       message: "Data retrieved successfully!",
-      data: finalResult,
+      data: newResult,
     });
   } catch (err) {
     next(err);
@@ -216,6 +263,8 @@ controller.createSchedule = async (req, res, next) => {
     }
   */
     const payload = req.body;
+    payload.on_model = payload.type;
+    delete payload.type;
 
     const result = await crudServices.create(ScheduleMovieModel, {
       data: payload,
@@ -246,6 +295,8 @@ controller.updateSchedule = async (req, res, next) => {
   */
     const { id } = req.params;
     const payload = req.body;
+    payload.on_model = payload.type;
+    delete payload.type;
 
     const result = await crudServices.update(ScheduleMovieModel, {
       id,

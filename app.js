@@ -28,7 +28,11 @@ const indexRouter = require("./routes");
 const notFoundMiddleware = require("./resource/middleware/not-found");
 const handleErrorMiddleware = require("./resource/middleware/handle-error");
 const { setupLogger } = require("./resource/helper/global-func");
-const { runMainSeeder, runSecondarySeeder } = require("./resource/seed");
+const {
+  runMainSeeder,
+  runSecondarySeeder,
+  runMovieSeeder,
+} = require("./resource/seed");
 
 // membuat variabel v1
 const v1 = "/api/v1";
@@ -100,6 +104,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 runMainSeeder();
 runSecondarySeeder();
+runMovieSeeder();
 // gunakan categories router
 app.use(v1, indexRouter);
 

@@ -3,12 +3,17 @@ const { model, Schema } = mongoose;
 
 const CityStatMovieLikeSchema = new Schema(
   {
+    on_model: {
+      type: String,
+      required: true,
+      enum: ["Movie", "Season"],
+    },
     movie_id: {
       type: Schema.Types.ObjectId,
-      ref: "Movie",
+      refPath: "on_model", // 🔥 PERBAIKAN 1: Menggunakan refPath agar dinamis mengikuti field on_model
       required: [true, "Movie ID wajib diisi"],
     },
-    movie_name: {
+    movie_title: {
       type: String,
       required: [true, "Nama film wajib diisi"],
       trim: true,
@@ -54,7 +59,14 @@ const CityStatMovieLikeSchema = new Schema(
 // Compound Index: Unik berdasarkan film, provinsi (region), dan kota.
 // Ini sangat penting agar statistik tidak duplikat untuk kota yang sama.
 CityStatMovieLikeSchema.index(
-  { movie_id: 1, regionName: 1, city: 1, date_format: 1 },
+  {
+    movie_id: 1,
+    regionName: 1,
+    city: 1,
+    date_format: 1,
+    movie_id: 1,
+    on_model: 1,
+  },
   { unique: true },
 );
 

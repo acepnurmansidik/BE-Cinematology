@@ -4,11 +4,15 @@ const { model, Schema } = mongoose;
 
 const ScheduleMovieSchema = new Schema(
   {
+    on_model: {
+      type: String,
+      required: true,
+      enum: ["Movie", "Season"],
+    },
     movie_id: {
       type: Schema.Types.ObjectId,
-      ref: "Movie",
-      default: null,
-      unique: true,
+      refPath: "on_model", // 🔥 PERBAIKAN 1: Menggunakan refPath agar dinamis mengikuti field on_model
+      required: [true, "Movie ID wajib diisi"],
     },
     time: {
       type: String,
@@ -55,5 +59,7 @@ const ScheduleMovieSchema = new Schema(
     collection: "schedule_movie",
   },
 );
+
+ScheduleMovieSchema.index({ movie_id: 1, on_model: 1 }, { unique: true });
 
 module.exports = model("ScheduleMovie", ScheduleMovieSchema);

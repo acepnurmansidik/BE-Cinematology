@@ -803,10 +803,11 @@ controller.userMovieLike = async (req, res, next) => {
     }
 
     dPayloadCityMovieLike.movie_id = payload.movie_id;
-    dPayloadCityMovieLike.movie_name = dMovie.title;
+    dPayloadCityMovieLike.movie_title = dMovie.title;
     await CityStatMovieLikeModel.findOneAndUpdate(
       {
         date_format,
+        on_model: dMovie.type === "season" ? "Season" : "Movie",
         movie_id: payload.movie_id,
         city: payload.location_raw.city || "Unknown",
         continent: payload.location_raw.continent,
@@ -972,6 +973,7 @@ controller.userMovieWatchHistory = async (req, res, next) => {
       await CityStatMovieWatchModel.findOneAndUpdate(
         {
           date_format,
+          on_model: dMovie.type === "season" ? "Season" : "Movie",
           movie_id: payload.movie_id,
           city: payload.location_raw.city || "Unknown",
           continent: payload.location_raw.continent,
@@ -1120,6 +1122,7 @@ controller.userMovieRating = async (req, res, next) => {
 
     await CityStatMovieRatingModel.findOneAndUpdate(
       {
+        on_model: movieExists.type === "season" ? "Season" : "Movie",
         movie_id: payload.movie_id,
         city: payload.location_raw.city || "Unknown",
         continent: payload.location_raw.continent,

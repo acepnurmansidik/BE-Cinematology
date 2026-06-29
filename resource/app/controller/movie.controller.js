@@ -896,7 +896,6 @@ controller.getMovieCurrentTrending = async (req, res, next) => {
     const populateField = [
       {
         path: "movie_id",
-        model: "Movie",
         select:
           "_id title slug synopsis genres_name thumbnail_id release_date vote_rating",
         populate: { path: "thumbnail_id", model: "Image", select: "_id path" },
@@ -945,7 +944,6 @@ controller.getMovieCurrentPopular = async (req, res, next) => {
     const populateField = [
       {
         path: "movie_id",
-        model: "Movie",
         select:
           "_id title slug synopsis genres_name thumbnail_id release_date vote_rating",
         populate: { path: "thumbnail_id", model: "Image", select: "_id path" },
@@ -990,7 +988,6 @@ controller.getNewReleaseEpisode = async (req, res, next) => {
     const populateField = [
       {
         path: "movie_id",
-        model: "Movie",
         select:
           "_id title slug synopsis genres_name thumbnail_id release_date vote_rating",
         populate: { path: "thumbnail_id", model: "Image", select: "_id path" },
@@ -1047,7 +1044,6 @@ controller.getTrendingEpisode = async (req, res, next) => {
     const populateField = [
       {
         path: "movie_id",
-        model: "Movie",
         select:
           "_id title slug synopsis genres_name thumbnail_id release_date vote_rating",
         populate: { path: "thumbnail_id", model: "Image", select: "_id path" },
@@ -1112,7 +1108,6 @@ controller.getPopularEpisode = async (req, res, next) => {
     const populateField = [
       {
         path: "movie_id",
-        model: "Movie",
         select:
           "_id title slug synopsis genres_name thumbnail_id release_date vote_rating",
         populate: { path: "thumbnail_id", model: "Image", select: "_id path" },

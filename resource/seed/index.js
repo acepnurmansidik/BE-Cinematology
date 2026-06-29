@@ -6,6 +6,10 @@ const usersModel = require("../app/models/users.model");
 const GenreModel = require("../app/models/Genre.model");
 const { USER_IAM } = require("../utils/etc/permission");
 const ModuleModel = require("../app/models/Module.model");
+const MovieModel = require("../app/models/Movie.model");
+const StudioModel = require("../app/models/Studio.model");
+const AuthorModel = require("../app/models/Author.model");
+const ActorModel = require("../app/models/Actor.model");
 const AuthUserModel = require("../app/models/auth.model");
 
 const runMainSeeder = async () => {
@@ -291,4 +295,216 @@ const runSecondarySeeder = async () => {
   }
 };
 
-module.exports = { runMainSeeder, runSecondarySeeder };
+const runMovieSeeder = async () => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    console.log(
+      "⏳ [SEEDER] Memulai seeding entitas pendukung (Studio, Author, Actor)...",
+    );
+
+    // ==========================================
+    // STEP 1: SEEDING DATA STUDIO
+    // ==========================================
+    const studios = ["Neo Tokyo Pro", "Aetheria Pictures", "Apex Cinema Labs"];
+    const studioMap = {};
+    for (const name of studios) {
+      const slug = globalService.createSlug(name.toLowerCase());
+      const doc = await StudioModel.findOneAndUpdate(
+        { slug },
+        { name, slug },
+        { upsert: true, returnDocument: "after", session },
+      );
+      studioMap[slug] = doc._id;
+    }
+
+    // ==========================================
+    // STEP 2: SEEDING DATA AUTHOR / DIRECTOR
+    // ==========================================
+    const authors = ["Christopher Nolan", "Hideo Kojima", "Guillermo del Toro"];
+    const authorMap = {};
+    for (const name of authors) {
+      const slug = globalService.createSlug(name.toLowerCase());
+      const doc = await AuthorModel.findOneAndUpdate(
+        { slug },
+        { name, slug },
+        { upsert: true, returnDocument: "after", session },
+      );
+      authorMap[slug] = doc._id;
+    }
+
+    // ==========================================
+    // STEP 3: SEEDING DATA ACTOR
+    // ==========================================
+    const actors = [
+      "Keanu Reeves",
+      "Timothée Chalamet",
+      "Scarlett Johansson",
+      "Tom Hardy",
+    ];
+    const actorMap = {};
+    for (const name of actors) {
+      const slug = globalService.createSlug(name.toLowerCase());
+      const doc = await ActorModel.findOneAndUpdate(
+        { slug },
+        { name, slug },
+        { upsert: true, returnDocument: "after", session },
+      );
+      actorMap[slug] = doc._id;
+    }
+
+    // ==========================================
+    // STEP 4: AMBIL DATA GENRE YANG SUDAH ADA
+    // ==========================================
+    const actionG = await GenreModel.findOne({ slug: "action" }).session(
+      session,
+    );
+    const scifiG = await GenreModel.findOne({ slug: "sci-fi" }).session(
+      session,
+    );
+    const adventureG = await GenreModel.findOne({ slug: "adventure" }).session(
+      session,
+    );
+    const horrorG = await GenreModel.findOne({ slug: "horror" }).session(
+      session,
+    );
+    const dramaG = await GenreModel.findOne({ slug: "drama" }).session(session);
+
+    // ==========================================
+    // STEP 5: DAFTAR 10 DATA MOVIE LENGKAP
+    // ==========================================
+    const moviesToSeed = [
+      {
+        title: "The Neon Vanguard",
+        genres_name: "Action, Sci-Fi, Cyberpunk",
+        genres: [actionG?._id, scifiG?._id].filter(Boolean),
+        studio_id: studioMap["neo-tokyo-pro"],
+        author_id: authorMap["hideo-kojima"],
+        actors: [
+          actorMap["keanu-reeves"],
+          actorMap["scarlett-johansson"],
+        ].filter(Boolean),
+      },
+      {
+        title: "Chronicles of the Lost Oasis",
+        genres_name: "Adventure, Fantasy",
+        genres: [adventureG?._id].filter(Boolean),
+        studio_id: studioMap["aetheria-pictures"],
+        author_id: authorMap["guillermo-del-toro"],
+        actors: [actorMap["timothee-chalamet"]],
+      },
+      {
+        title: "Shadows in the Attic",
+        genres_name: "Horror, Mystery",
+        genres: [horrorG?._id].filter(Boolean),
+        studio_id: studioMap["apex-cinema-labs"],
+        author_id: authorMap["guillermo-del-toro"],
+        actors: [actorMap["scarlett-johansson"]],
+      },
+      {
+        title: "Echoes of Yesterday",
+        genres_name: "Drama, Romance",
+        genres: [dramaG?._id].filter(Boolean),
+        studio_id: studioMap["aetheria-pictures"],
+        author_id: authorMap["christopher-nolan"],
+        actors: [actorMap["timothee-chalamet"]],
+      },
+      {
+        title: "Velocity Shift",
+        genres_name: "Action, Thriller",
+        genres: [actionG?._id].filter(Boolean),
+        studio_id: studioMap["apex-cinema-labs"],
+        author_id: authorMap["christopher-nolan"],
+        actors: [actorMap["tom-hardy"], actorMap["keanu-reeves"]].filter(
+          Boolean,
+        ),
+      },
+      {
+        title: "The Iron Fortress",
+        genres_name: "Action, Mecha, Sci-Fi",
+        genres: [actionG?._id, scifiG?._id].filter(Boolean),
+        studio_id: studioMap["neo-tokyo-pro"],
+        author_id: authorMap["hideo-kojima"],
+        actors: [actorMap["tom-hardy"]],
+      },
+      {
+        title: "Interstellar Horizon",
+        genres_name: "Sci-Fi, Drama",
+        genres: [scifiG?._id, dramaG?._id].filter(Boolean),
+        studio_id: studioMap["aetheria-pictures"],
+        author_id: authorMap["christopher-nolan"],
+        actors: [actorMap["tom-hardy"], actorMap["timothee-chalamet"]].filter(
+          Boolean,
+        ),
+      },
+      {
+        title: "Gridlock Protocol",
+        genres_name: "Sci-Fi, Psychological",
+        genres: [scifiG?._id].filter(Boolean),
+        studio_id: studioMap["apex-cinema-labs"],
+        author_id: authorMap["hideo-kojima"],
+        actors: [actorMap["keanu-reeves"]],
+      },
+      {
+        title: "Midnight Junction",
+        genres_name: "Comedy, Slice of Life",
+        genres: [dramaG?._id].filter(Boolean),
+        studio_id: studioMap["neo-tokyo-pro"],
+        author_id: authorMap["christopher-nolan"],
+        actors: [actorMap["scarlett-johansson"]],
+      },
+      {
+        title: "The Last Frontier",
+        genres_name: "Western, Action",
+        genres: [actionG?._id].filter(Boolean),
+        studio_id: studioMap["apex-cinema-labs"],
+        author_id: authorMap["guillermo-del-toro"],
+        actors: [actorMap["tom-hardy"], actorMap["keanu-reeves"]].filter(
+          Boolean,
+        ),
+      },
+    ];
+
+    // ==========================================
+    // STEP 6: BULK INSERT / UPSERT MOVIES
+    // ==========================================
+    for (const movieData of moviesToSeed) {
+      const movieSlug = globalService.createSlug(movieData.title.toLowerCase());
+
+      await MovieModel.findOneAndUpdate(
+        { slug: movieSlug },
+        {
+          title: movieData.title,
+          slug: movieSlug,
+          type: "movie",
+          genres_name: movieData.genres_name,
+          genres: movieData.genres,
+          studio_id: movieData.studio_id || null, // Menghubungkan ID Studio
+          author_id: movieData.author_id || null, // Menghubungkan ID Author (Director)
+          actors: movieData.actors || [], // Menghubungkan Array ID Actor
+          release_date: new Date(),
+          thumbnail_id: null,
+          is_delete: false,
+        },
+        {
+          upsert: true,
+          session,
+          setDefaultsOnInsert: true,
+        },
+      );
+    }
+
+    await session.commitTransaction();
+    console.log(
+      "✅ [SEEDER] Sukses menyuntikkan 10 Film lengkap dengan relasi entitas!",
+    );
+  } catch (error) {
+    if (session.inTransaction()) await session.abortTransaction();
+    console.error("❌ [SEEDER] Gagal menjalankan seeder lengkap:", error);
+  } finally {
+    await session.endSession();
+  }
+};
+
+module.exports = { runMainSeeder, runSecondarySeeder, runMovieSeeder };

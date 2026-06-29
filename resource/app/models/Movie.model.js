@@ -37,11 +37,13 @@ const MovieSchema = new Schema(
     },
     type: {
       type: String,
+      trim: true,
+      lowercase: true,
+      required: [true, "Type is required!"],
       enum: {
-        values: ["movie", "manga", "series"],
+        values: ["movie", "manga", "series", "season"],
         message: "{VALUE} is not a valid type",
       },
-      required: [true, "Type is required!"],
     },
     is_adult: {
       type: Boolean,
