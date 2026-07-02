@@ -178,17 +178,24 @@ controller.createMovieAdminOnly = async (req, res, next) => {
     payload.authors = finalAuthors;
 
     // PERBAIKAN: Bersihkan opsi .create() dari upsert karena create otomatis insert baru
-    const createdMovies = await MovieModel.create([payload], { session });
+    const [createdMovies] = await MovieModel.create([payload], { session });
 
-    dLogActions.push({
-      type: "CREATE",
-      target_id: createdMovies[0]._id,
-      before: null,
-      after: createdMovies[0],
-      source: MovieModel.collection.collectionName,
-    });
+    dLogActions.push();
 
-    await LogActionModel.create(dLogActions, { session });
+    await LogActionModel.create(
+      {
+        target_id: createdMovies._id,
+        source: MovieModel.collection.collectionName,
+        activities: [
+          {
+            type: "CREATE",
+            after: createdMovies,
+            before: null,
+          },
+        ],
+      },
+      { session },
+    );
     await session.commitTransaction();
 
     res.status(200).json({
@@ -207,7 +214,6 @@ controller.createMovieAdminOnly = async (req, res, next) => {
 controller.updateMovieAdminOnly = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  const logActions = [];
   /*
     #swagger.tags = ['MOVIE']
     #swagger.summary = 'Update Movie'
@@ -315,15 +321,18 @@ controller.updateMovieAdminOnly = async (req, res, next) => {
       { upsert: true, returnDocument: "after", session },
     );
 
-    logActions.push({
+    const dLogMovie = await LogActionModel.findOne(
+      { target_id: _id },
+      { session },
+    ).lean();
+
+    dLogMovie.activities.push({
       type: "UPDATE",
-      target_id: isMovieExist._id, // id of the created document
       before: isMovieExist,
       after: movieUpdate,
-      source: MovieModel.collection.collectionName,
     });
 
-    await LogActionModel.create(logActions, { session });
+    await dLogMovie.save({ session });
     await session.commitTransaction();
     res.status(201).json({
       success: true,

@@ -13,6 +13,7 @@ const UserMovieLikeModel = require("../models/UserMovieLike.model");
 const UserMovieRatingModel = require("../models/UserMovieRating.model");
 const WatchHistoryModel = require("../models/WatchHistory.model");
 const RoleModel = require("../models/role.model");
+const LogActionModel = require("../models/LogAction.model");
 
 const controller = {};
 
@@ -55,7 +56,7 @@ controller.Register = async (req, res, next) => {
     const auth = new AuthUser({ ...payload });
     await auth.save({ session });
 
-    await UserSchema.create(
+    const [userResult] = await UserSchema.create(
       [
         {
           auth_id: auth._id,
@@ -93,6 +94,23 @@ controller.Register = async (req, res, next) => {
         WatchHistoryModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
+          { session },
+        ),
+
+        // LOG ACTION
+        LogActionModel.create(
+          [
+            {
+              target_id: userResult._id,
+              source: UserSchema.collection.collectionName,
+              activities: [
+                {
+                  type: "CREATE",
+                  after: userResult,
+                },
+              ],
+            },
+          ],
           { session },
         ),
       ]);

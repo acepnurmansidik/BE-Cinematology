@@ -1,12 +1,26 @@
 const mongoose = require("mongoose");
 const { model, Schema } = mongoose;
 
-const LogActionModel = Schema(
+const LogActivitiesModel = Schema(
   {
     type: {
       type: String,
       enum: ["CREATE", "UPDATE", "DELETE"],
     },
+    before: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    after: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+  },
+  { _id: false },
+);
+
+const LogActionModel = Schema(
+  {
     target_id: {
       type: Schema.Types.ObjectId,
     },
@@ -14,12 +28,7 @@ const LogActionModel = Schema(
       type: String,
       default: "",
     },
-    before: {
-      type: Schema.Types.Mixed,
-    },
-    after: {
-      type: Schema.Types.Mixed,
-    },
+    activities: [LogActivitiesModel],
   },
   {
     // PERBAIKAN DI SINI:

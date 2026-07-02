@@ -367,23 +367,27 @@ controller.createUserTransaction = async (req, res, next) => {
     // if get failed response fro payment gateway, throw error and rollback transaction
 
     // update database after successful get response from payment gateway
-    const resultSubscribe = await SubscriptionModel.create(
+    const [resultSubscribe] = await SubscriptionModel.create(
       [{ user_id: userLogin._id, plan_id: payload.plan_id }],
       { session },
     );
     logActions.push({
-      type: "CREATE",
-      target_id: resultSubscribe[0]._id, // id of the created document
-      after: resultSubscribe[0],
+      target_id: resultSubscribe._id, // id of the created document
       source: SubscriptionModel.collection.collectionName,
+      activities: [
+        {
+          type: "CREATE",
+          after: resultSubscribe,
+        },
+      ],
     });
 
-    const resultPaymentHistory = await PaymentHistoryModel.create(
+    const [resultPaymentHistory] = await PaymentHistoryModel.create(
       [
         {
           user_id: userLogin._id,
           plan_id: planId,
-          subscription_id: resultSubscribe[0]._id,
+          subscription_id: resultSubscribe._id,
           ...payload,
         },
       ],
@@ -391,9 +395,13 @@ controller.createUserTransaction = async (req, res, next) => {
     );
     logActions.push({
       type: "CREATE",
-      target_id: resultPaymentHistory[0]._id, // id of the created document
-      after: resultPaymentHistory[0],
-      source: PaymentHistoryModel.collection.collectionName,
+      target_id: resultPaymentHistory._id, // id of the created document
+      activities: [
+        {
+          after: resultPaymentHistory,
+          source: PaymentHistoryModel.collection.collectionName,
+        },
+      ],
     });
 
     await LogActionModel.create(logActions, { session });
@@ -451,7 +459,6 @@ controller.getUserTransaction = async (req, res, next) => {
 controller.userPayment = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  const logActions = [];
   /*
     #swagger.tags = ['Users']
     #swagger.summary = 'user payment'
@@ -497,25 +504,38 @@ controller.userPayment = async (req, res, next) => {
       { session },
     );
 
-    logActions.push({
-      type: "UPDATE",
-      target_id: resultPayment._id, // id of the created document
-      before: userPaymentBefore,
-      after: resultPayment,
-      source: PaymentHistoryModel.collection.collectionName,
-    });
     const resultSubscribe = await SubscriptionModel.findOneAndUpdate(
       { _id: isPaymentHistoryExist.subscription_id },
       { status: "active" },
       { session },
     );
-    logActions.push({
+
+    const [dLogUserPayment, dLogUserSubscribe, dLogUser] = await Promise.all([
+      LogActionModel.findOne(
+        { target_id: resultPayment._id },
+        { session },
+      ).lean(),
+      LogActionModel.findOne(
+        { target_id: resultSubscribe._id },
+        { session },
+      ).lean(),
+      LogActionModel.findOne(
+        { target_id: isPaymentHistoryExist.user_id },
+        { session },
+      ).lean(),
+    ]);
+
+    dLogUserPayment.activities.push({
       type: "UPDATE",
-      target_id: userSubscribeBefore._id, // id of the created document
+      before: userPaymentBefore,
+      after: resultPayment,
+    });
+    dLogUserSubscribe.activities.push({
+      type: "UPDATE",
       before: userSubscribeBefore,
       after: resultSubscribe,
-      source: SubscriptionModel.collection.collectionName,
     });
+
     const resultUser = await UserModel.findOneAndUpdate(
       { _id: isPaymentHistoryExist.user_id },
       {
@@ -529,15 +549,15 @@ controller.userPayment = async (req, res, next) => {
       { session },
     );
 
-    logActions.push({
+    dLogUserSubscribe.activities.push({
       type: "UPDATE",
-      target_id: userBefore._id, // id of the created document
       before: userBefore,
       after: resultUser,
-      source: UserModel.collection.collectionName,
     });
 
-    await LogActionModel.create(logActions, { session });
+    await dLogUserPayment.save({ session });
+    await dLogUserSubscribe.save({ session });
+    await dLogUserSubscribe.save({ session });
     await session.commitTransaction();
 
     res.status(201).json({
@@ -559,7 +579,6 @@ controller.userPayment = async (req, res, next) => {
 controller.userMovieLike = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  const logActions = [];
   /*
     #swagger.tags = ['Users']
     #swagger.summary = 'user like or unlike movie'
@@ -859,9 +878,6 @@ controller.userMovieLike = async (req, res, next) => {
         genre_like_stats: userActivity.genre_like_stats,
       },
     });
-
-    // update city stat movie like
-    await LogActionModel.create(logActions, { session });
 
     // update socket for real time update movie like and demographic genre like stats, coming soon
 
