@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
-const roleModel = require("../app/models/role.model");
+const RoleModel = require("../app/models/Role.model");
 const globalService = require("../helper/global-func");
 const usersModel = require("../app/models/users.model");
 const GenreModel = require("../app/models/Genre.model");
@@ -10,7 +10,7 @@ const MovieModel = require("../app/models/Movie.model");
 const StudioModel = require("../app/models/Studio.model");
 const AuthorModel = require("../app/models/Author.model");
 const ActorModel = require("../app/models/Actor.model");
-const AuthUserModel = require("../app/models/auth.model");
+const AuthUserModel = require("../app/models/Auth.model");
 
 const runMainSeeder = async () => {
   const session = await mongoose.startSession();
@@ -158,9 +158,23 @@ const runMainSeeder = async () => {
       }
     }
 
-    const role = await roleModel.findOneAndUpdate(
+    const role = await RoleModel.findOneAndUpdate(
       { slug: roleSlug },
       { $set: superUltramanData },
+      { upsert: true, returnDocument: "after", session }, // Gunakan returnDocument: 'after'
+    );
+
+    // PERBAIKAN: Gunakan findOneAndUpdate agar aman dijalankan berkali-kali (idempotent)
+    await RoleModel.findOneAndUpdate(
+      { slug: "members" },
+      {
+        $set: {
+          slug: "members",
+          name: "Members",
+          has_access_module: [],
+          path_access: [],
+        },
+      },
       { upsert: true, returnDocument: "after", session }, // Gunakan returnDocument: 'after'
     );
     console.log("✅ [SEEDERS] Role upserted successfully!");

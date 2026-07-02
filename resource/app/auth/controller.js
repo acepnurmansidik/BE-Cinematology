@@ -1,5 +1,5 @@
 const { jwt } = require("../../utils/config");
-const AuthUser = require("../models/auth.model");
+const AuthUser = require("../models/Auth.model");
 const UserSchema = require("../models/users.model");
 const bcrypt = require("bcrypt");
 const { BadRequestError, NotFoundError } = require("../../utils/errors");
@@ -12,7 +12,7 @@ const EpisodeRatingModel = require("../models/EpisodeRating.model");
 const UserMovieLikeModel = require("../models/UserMovieLike.model");
 const UserMovieRatingModel = require("../models/UserMovieRating.model");
 const WatchHistoryModel = require("../models/WatchHistory.model");
-const RoleModel = require("../models/role.model");
+const RoleModel = require("../models/Role.model");
 const LogActionModel = require("../models/LogAction.model");
 
 const controller = {};
@@ -68,6 +68,23 @@ controller.Register = async (req, res, next) => {
       { session },
     );
 
+    // LOG ACTION
+    await LogActionModel.create(
+      [
+        {
+          target_id: userResult._id,
+          source: UserSchema.collection.collectionName,
+          activities: [
+            {
+              type: "CREATE",
+              after: userResult,
+            },
+          ],
+        },
+      ],
+      { session },
+    );
+
     // update semua data yang memiliki guest_id sama dengan guest_id yang dikirimkan oleh user ketika login
     if (guest_id) {
       await Promise.all([
@@ -94,23 +111,6 @@ controller.Register = async (req, res, next) => {
         WatchHistoryModel.updateMany(
           { user_id: guest_id },
           { user_id: users.data._id, is_guest: false },
-          { session },
-        ),
-
-        // LOG ACTION
-        LogActionModel.create(
-          [
-            {
-              target_id: userResult._id,
-              source: UserSchema.collection.collectionName,
-              activities: [
-                {
-                  type: "CREATE",
-                  after: userResult,
-                },
-              ],
-            },
-          ],
           { session },
         ),
       ]);

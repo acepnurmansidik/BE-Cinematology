@@ -7,11 +7,11 @@ const {
 const bcrypt = require("bcrypt");
 const { DateTime } = require("luxon");
 const { jwt } = require("../../utils/config");
-const RoleModel = require("../models/role.model");
+const RoleModel = require("../models/Role.model");
 const PlanModel = require("../models/Plan.model");
 const UsersModel = require("../models/users.model");
 const MovieModel = require("../models/Movie.model");
-const AuthUserModel = require("../models/auth.model");
+const AuthUserModel = require("../models/Auth.model");
 const EpisodeModel = require("../models/Episode.model");
 const crudServices = require("../../helper/crudService");
 const LogActionModel = require("../models/LogAction.model");
