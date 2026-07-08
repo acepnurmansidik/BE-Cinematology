@@ -15,9 +15,8 @@ controller.getAllStudio = async (req, res, next) => {
   try {
     const query = {};
     const populateField = [];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [
       { path: "profile_id", model: "Image", select: "_id path" },
     ];

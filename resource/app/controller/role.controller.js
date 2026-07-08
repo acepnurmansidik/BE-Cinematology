@@ -15,9 +15,9 @@ controller.getAllRole = async (req, res, next) => {
   try {
     const query = {};
     const populateField = [];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
+
     const arrFilter = [];
     if (search) {
       arrFilter.push({ name: { $regex: search, $options: "i" } });

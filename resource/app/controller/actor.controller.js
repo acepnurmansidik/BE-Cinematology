@@ -17,9 +17,8 @@ controller.getAllActor = async (req, res, next) => {
     const populateField = [
       { path: "avatar_id", model: "Image", select: "_id path" },
     ];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ name: { $regex: search, $options: "i" } });
@@ -95,7 +94,7 @@ controller.updateActor = async (req, res, next) => {
     const { id } = req.params;
     const payload = req.body;
     payload.name = payload.name.toLowerCase();
-    payload.slug = globalService.createSlug(payload.value);
+    payload.slug = globalService.createSlug(payload.name);
 
     const isExist = await crudServices.findOne(ActorModel, {
       query: { _id: { $ne: id }, slug: payload.slug },

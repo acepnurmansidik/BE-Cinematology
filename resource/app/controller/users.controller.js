@@ -48,9 +48,8 @@ controller.getAllUser = async (req, res, next) => {
       { path: "role_id", model: "Role", select: "_id name path_access" },
       { path: "auth_id", model: "AuthUser", select: "_id username email" },
     ];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ name: { $regex: search, $options: "i" } });
@@ -244,9 +243,8 @@ controller.getAllTransaction = async (req, res, next) => {
     const query = {};
     if (req.login.role_name !== "ultraman") query.user_id = req.login._id;
     const populateField = [];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ status: { $regex: search, $options: "i" } });
@@ -292,9 +290,9 @@ controller.getAllMovieHistoryUser = async (req, res, next) => {
     query.user_id = req.login
       ? req.login.user_id.toString()
       : req.query.guest_id;
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
+
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });
@@ -438,9 +436,8 @@ controller.getUserTransaction = async (req, res, next) => {
   try {
     const query = {};
     const populateField = [];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });
@@ -1204,9 +1201,8 @@ controller.getAllDemographicLike = async (req, res, next) => {
         populate: { path: "cover_id", select: "_id path" },
       },
     ];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });
@@ -1241,9 +1237,8 @@ controller.getAllDemographicGenre = async (req, res, next) => {
   try {
     const query = {};
     const populateField = [{ path: "genre_id", select: "_id name" }];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });
@@ -1284,9 +1279,8 @@ controller.getAllDemographicWatch = async (req, res, next) => {
         populate: { path: "cover_id", select: "path" },
       },
     ];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });
@@ -1327,9 +1321,8 @@ controller.getAllDemographicRating = async (req, res, next) => {
         populate: { path: "cover_id", select: "path" },
       },
     ];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });

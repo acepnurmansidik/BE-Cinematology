@@ -55,9 +55,8 @@ controller.getAllMovieAdminOnly = async (req, res, next) => {
         populate: { path: "avatar_id", model: "Image", select: "_id path" },
       },
     ];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ title: { $regex: search, $options: "i" } });
@@ -393,9 +392,8 @@ controller.getUserDemographicMovieLike = async (req, res, next) => {
     if (req.query.region) query.region = req.query.region;
     if (req.query.city) query.city = req.query.city;
     const populateField = [];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });
@@ -434,9 +432,8 @@ controller.getUserDemographicMovieWatch = async (req, res, next) => {
     if (req.query.city) query.city = req.query.city;
     if (req.query.status) query.status = req.query.status;
     const populateField = [];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });
@@ -474,9 +471,8 @@ controller.getDemographicMovieGenreUser = async (req, res, next) => {
     if (req.query.region) query.region = req.query.region;
     if (req.query.city) query.city = req.query.city;
     const populateField = [];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });
@@ -514,9 +510,8 @@ controller.getDemographicMovieUserRating = async (req, res, next) => {
     if (req.query.region) query.region = req.query.region;
     if (req.query.city) query.city = req.query.city;
     const populateField = [];
-    const { search, type, page, limit = 10 } = req.query;
+    const { search, page, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
-    if (query.length) query.type = type;
     const arrFilter = [];
     if (search) {
       arrFilter.push({ value: { $regex: search, $options: "i" } });

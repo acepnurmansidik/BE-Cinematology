@@ -6,9 +6,8 @@ const controller = {};
 
 controller.index = async (req, res, next) => {
   const query = {};
-  const { search, type, page, limit = 10 } = req.query;
+  const { search, page, limit = 10 } = req.query;
   const skip = (page - 1) * limit;
-  if (query.length) query.type = type;
   const arrFilter = [];
   if (search) {
     arrFilter.push({ value: { $regex: search, $options: "i" } });
