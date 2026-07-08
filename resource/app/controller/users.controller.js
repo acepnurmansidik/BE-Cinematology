@@ -57,13 +57,15 @@ controller.getAllUser = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await UsersModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(UsersModel, {
-      query,
-      populateField,
-      skip,
-      limit,
-    });
+    const [page_size, result] = await Promise.all([
+      UsersModel.countDocuments(query),
+      crudServices.findAllPagination(UsersModel, {
+        query,
+        populateField,
+        skip,
+        limit,
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -251,13 +253,15 @@ controller.getAllTransaction = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await PaymentHistoryModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(PaymentHistoryModel, {
-      query,
-      populateField,
-      skip,
-      limit,
-    });
+    const [page_size, result] = await Promise.all([
+      PaymentHistoryModel.countDocuments(query),
+      crudServices.findAllPagination(PaymentHistoryModel, {
+        query,
+        populateField,
+        skip,
+        limit,
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -297,31 +301,33 @@ controller.getAllMovieHistoryUser = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await WatchHistoryModel.countDocuments(query);
-    const result = await crudServices
-      .findAllPagination(WatchHistoryModel, {
-        query,
-        populateField,
-        skip,
-        limit,
-      })
-      .then((stats) =>
-        stats.data.map((item) => {
-          const movieData =
-            item.movie_id?._doc ||
-            (typeof item.movie_id?.toObject === "function"
-              ? item.movie_id.toObject()
-              : item.movie_id);
+    const [page_size, result] = await Promise.all([
+      WatchHistoryModel.countDocuments(query),
+      crudServices
+        .findAllPagination(WatchHistoryModel, {
+          query,
+          populateField,
+          skip,
+          limit,
+        })
+        .then((stats) =>
+          stats.data.map((item) => {
+            const movieData =
+              item.movie_id?._doc ||
+              (typeof item.movie_id?.toObject === "function"
+                ? item.movie_id.toObject()
+                : item.movie_id);
 
-          return {
-            ...movieData,
-            duration_seconds: item.duration_seconds,
-            last_watched_at: item.last_watched_at,
-            progress_seconds: item.progress_seconds,
-            episode_id: item.episode_id,
-          };
-        }),
-      );
+            return {
+              ...movieData,
+              duration_seconds: item.duration_seconds,
+              last_watched_at: item.last_watched_at,
+              progress_seconds: item.progress_seconds,
+              episode_id: item.episode_id,
+            };
+          }),
+        ),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -443,13 +449,15 @@ controller.getUserTransaction = async (req, res, next) => {
 
     query.user_id = req.login._id;
 
-    const page_size = await PaymentHistoryModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(PaymentHistoryModel, {
-      query,
-      populateField,
-      skip,
-      limit,
-    });
+    const [page_size, result] = await Promise.all([
+      PaymentHistoryModel.countDocuments(query),
+      crudServices.findAllPagination(PaymentHistoryModel, {
+        query,
+        populateField,
+        skip,
+        limit,
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -1205,17 +1213,16 @@ controller.getAllDemographicLike = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await CityStatMovieLikeModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(
-      CityStatMovieLikeModel,
-      {
+    const [page_size, result] = await Promise.all([
+      CityStatMovieLikeModel.countDocuments(query),
+      crudServices.findAllPagination(CityStatMovieLikeModel, {
         query,
         populateField,
         skip,
         limit,
         selectField: "-location_raw -__v -created_at",
-      },
-    );
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -1243,17 +1250,16 @@ controller.getAllDemographicGenre = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await CityStatMovieGenreModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(
-      CityStatMovieGenreModel,
-      {
+    const [page_size, result] = await Promise.all([
+      CityStatMovieGenreModel.countDocuments(query),
+      crudServices.findAllPagination(CityStatMovieGenreModel, {
         query,
         populateField,
         skip,
         limit,
         selectField: "-location_raw -__v -created_at",
-      },
-    );
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -1287,17 +1293,16 @@ controller.getAllDemographicWatch = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await CityStatMovieWatchModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(
-      CityStatMovieWatchModel,
-      {
+    const [page_size, result] = await Promise.all([
+      CityStatMovieWatchModel.countDocuments(query),
+      crudServices.findAllPagination(CityStatMovieWatchModel, {
         query,
         populateField,
         skip,
         limit,
         selectField: "-location_raw -__v -created_at",
-      },
-    );
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -1331,17 +1336,16 @@ controller.getAllDemographicRating = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await CityStatMovieRatingModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(
-      CityStatMovieRatingModel,
-      {
+    const [page_size, result] = await Promise.all([
+      CityStatMovieRatingModel.countDocuments(query),
+      crudServices.findAllPagination(CityStatMovieRatingModel, {
         query,
         populateField,
         skip,
         limit,
         selectField: "-location_raw -__v -created_at",
-      },
-    );
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);

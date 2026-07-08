@@ -177,6 +177,12 @@ MovieSchema.pre("validate", function (next) {
   if (!this.slug && this.title) {
     this.slug = globalService.createSlug(this.title);
   }
+  next();
 });
+
+// Index pendukung untuk pola query yang sering dipakai (list & rekomendasi):
+// find({ is_delete:false }).sort({ created_at:-1 }) dan filter by type.
+MovieSchema.index({ is_delete: 1, created_at: -1 });
+MovieSchema.index({ type: 1 });
 
 module.exports = model("Movie", MovieSchema);

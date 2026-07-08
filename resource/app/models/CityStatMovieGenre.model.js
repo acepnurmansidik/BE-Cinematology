@@ -54,4 +54,8 @@ CityStatMovieGenreSchema.index(
   { unique: true },
 );
 
+// Index pendukung untuk query rekomendasi/trending (filter lokasi & rentang waktu)
+CityStatMovieGenreSchema.index({ regionName: 1, city: 1 });
+CityStatMovieGenreSchema.index({ created_at: -1 });
+
 module.exports = model("CityStatMovieGenre", CityStatMovieGenreSchema);

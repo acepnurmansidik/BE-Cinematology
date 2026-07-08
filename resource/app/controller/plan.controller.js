@@ -23,13 +23,15 @@ controller.getAllPlans = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await PlanModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(PlanModel, {
-      query,
-      populateField,
-      skip,
-      limit,
-    });
+    const [page_size, result] = await Promise.all([
+      PlanModel.countDocuments(query),
+      crudServices.findAllPagination(PlanModel, {
+        query,
+        populateField,
+        skip,
+        limit,
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);

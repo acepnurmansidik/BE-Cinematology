@@ -24,13 +24,15 @@ controller.getAllModule = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await ModuleModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(ModuleModel, {
-      query,
-      populateField,
-      skip,
-      limit,
-    });
+    const [page_size, result] = await Promise.all([
+      ModuleModel.countDocuments(query),
+      crudServices.findAllPagination(ModuleModel, {
+        query,
+        populateField,
+        skip,
+        limit,
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);

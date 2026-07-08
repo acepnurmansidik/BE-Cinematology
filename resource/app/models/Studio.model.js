@@ -92,6 +92,7 @@ StudioSchema.pre("validate", function (next) {
   if (!this.slug && this.name) {
     this.slug = globalService.createSlug(this.name); // Pastikan fungsi createSlug mengembalikan slug yang benar
   }
+  next();
 });
 
 module.exports = model("Studio", StudioSchema);

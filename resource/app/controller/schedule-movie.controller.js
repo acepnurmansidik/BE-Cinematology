@@ -213,31 +213,33 @@ controller.getAllSchedule = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await ScheduleMovieModel.countDocuments(query);
-    const result = await crudServices
-      .findAllPagination(ScheduleMovieModel, {
-        query,
-        populateField,
-        skip,
-        limit,
-      })
-      .then((stats) =>
-        stats.data.map((item) => {
-          const movieData =
-            item.movie_id?._doc ||
-            (typeof item.movie_id?.toObject === "function"
-              ? item.movie_id.toObject()
-              : item.movie_id);
+    const [page_size, result] = await Promise.all([
+      ScheduleMovieModel.countDocuments(query),
+      crudServices
+        .findAllPagination(ScheduleMovieModel, {
+          query,
+          populateField,
+          skip,
+          limit,
+        })
+        .then((stats) =>
+          stats.data.map((item) => {
+            const movieData =
+              item.movie_id?._doc ||
+              (typeof item.movie_id?.toObject === "function"
+                ? item.movie_id.toObject()
+                : item.movie_id);
 
-          return {
-            ...movieData,
-            time: item.time,
-            day: item.day,
-            start_date: item.start_date,
-            due_date: item.due_date,
-          };
-        }),
-      );
+            return {
+              ...movieData,
+              time: item.time,
+              day: item.day,
+              start_date: item.start_date,
+              due_date: item.due_date,
+            };
+          }),
+        ),
+    ]);
     res.status(200).json({
       success: true,
       data: result,

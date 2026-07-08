@@ -24,13 +24,15 @@ controller.getAllGenre = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await GenreModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(GenreModel, {
-      query,
-      populateField,
-      skip,
-      limit,
-    });
+    const [page_size, result] = await Promise.all([
+      GenreModel.countDocuments(query),
+      crudServices.findAllPagination(GenreModel, {
+        query,
+        populateField,
+        skip,
+        limit,
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);

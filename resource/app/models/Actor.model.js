@@ -74,6 +74,7 @@ ActorSchema.pre("validate", function (next) {
   if (!this.slug && this.name) {
     this.slug = globalService.createSlug(this.name);
   }
+  next();
 });
 
 module.exports = model("Actor", ActorSchema); // Sebelumnya "Genre"

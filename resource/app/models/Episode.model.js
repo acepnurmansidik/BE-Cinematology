@@ -48,6 +48,7 @@ EpisodeSchema.pre("validate", function (next) {
   if (!this.slug && this.title) {
     this.slug = globalService.createSlug(this.title); // Pastikan fungsi createSlug mengembalikan slug yang benar
   }
+  next();
 });
 
 // Indexing untuk pencarian cepat berdasarkan movie dan urutan episode

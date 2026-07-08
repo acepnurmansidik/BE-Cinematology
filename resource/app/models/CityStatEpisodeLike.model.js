@@ -63,4 +63,8 @@ CityStatEpisodeLikeSchema.index(
   { unique: true },
 );
 
+// Index pendukung untuk query rekomendasi/trending (filter lokasi & rentang waktu)
+CityStatEpisodeLikeSchema.index({ regionName: 1, city: 1 });
+CityStatEpisodeLikeSchema.index({ created_at: -1 });
+
 module.exports = model("CityStatEpisodeLike", CityStatEpisodeLikeSchema);

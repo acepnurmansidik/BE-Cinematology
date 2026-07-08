@@ -1,4 +1,6 @@
+const mongoose = require("mongoose");
 const globalService = require("../../helper/global-func");
+const { model, Schema } = mongoose;
 
 const SeasonSchema = new Schema(
   {
@@ -46,6 +48,7 @@ SeasonSchema.pre("validate", function (next) {
   if (!this.slug && this.title) {
     this.slug = globalService.createSlug(this.title); // Pastikan fungsi createSlug mengembalikan slug yang benar
   }
+  next();
 });
 
 module.exports = model("Season", SeasonSchema);

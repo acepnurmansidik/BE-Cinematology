@@ -69,13 +69,15 @@ controller.getAllMovieAdminOnly = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await MovieModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(MovieModel, {
-      query,
-      populateField,
-      skip,
-      limit,
-    });
+    const [page_size, result] = await Promise.all([
+      MovieModel.countDocuments(query),
+      crudServices.findAllPagination(MovieModel, {
+        query,
+        populateField,
+        skip,
+        limit,
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -85,7 +87,6 @@ controller.getAllMovieAdminOnly = async (req, res, next) => {
 controller.createMovieAdminOnly = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  const dLogActions = [];
   /*
     #swagger.tags = ['MOVIE']
     #swagger.summary = 'Create Movie'
@@ -180,8 +181,6 @@ controller.createMovieAdminOnly = async (req, res, next) => {
     // PERBAIKAN: Bersihkan opsi .create() dari upsert karena create otomatis insert baru
     const [createdMovies] = await MovieModel.create([payload], { session });
 
-    dLogActions.push();
-
     await LogActionModel.create(
       {
         target_id: createdMovies._id,
@@ -205,7 +204,7 @@ controller.createMovieAdminOnly = async (req, res, next) => {
     });
   } catch (error) {
     await session.abortTransaction();
-    throw new Error(error.message);
+    next(error);
   } finally {
     await session.endSession();
   }
@@ -344,7 +343,7 @@ controller.updateMovieAdminOnly = async (req, res, next) => {
     if (session.inTransaction()) {
       await session.abortTransaction();
     }
-    throw new Error(error.message);
+    next(error);
   } finally {
     await session.endSession();
   }
@@ -403,16 +402,15 @@ controller.getUserDemographicMovieLike = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await CityStatMovieLikeModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(
-      CityStatMovieLikeModel,
-      {
+    const [page_size, result] = await Promise.all([
+      CityStatMovieLikeModel.countDocuments(query),
+      crudServices.findAllPagination(CityStatMovieLikeModel, {
         query,
         populateField,
         skip,
         limit,
-      },
-    );
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -445,16 +443,15 @@ controller.getUserDemographicMovieWatch = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await CityStatMovieWatchModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(
-      CityStatMovieWatchModel,
-      {
+    const [page_size, result] = await Promise.all([
+      CityStatMovieWatchModel.countDocuments(query),
+      crudServices.findAllPagination(CityStatMovieWatchModel, {
         query,
         populateField,
         skip,
         limit,
-      },
-    );
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -486,16 +483,15 @@ controller.getDemographicMovieGenreUser = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await CityStatMovieGenreModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(
-      CityStatMovieGenreModel,
-      {
+    const [page_size, result] = await Promise.all([
+      CityStatMovieGenreModel.countDocuments(query),
+      crudServices.findAllPagination(CityStatMovieGenreModel, {
         query,
         populateField,
         skip,
         limit,
-      },
-    );
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -527,16 +523,15 @@ controller.getDemographicMovieUserRating = async (req, res, next) => {
     }
     if (arrFilter.length) query["$or"] = arrFilter;
 
-    const page_size = await CityStatMovieRatingModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(
-      CityStatMovieRatingModel,
-      {
+    const [page_size, result] = await Promise.all([
+      CityStatMovieRatingModel.countDocuments(query),
+      crudServices.findAllPagination(CityStatMovieRatingModel, {
         query,
         populateField,
         skip,
         limit,
-      },
-    );
+      }),
+    ]);
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
     next(err);
@@ -977,7 +972,7 @@ controller.getMovieCurrentPopular = async (req, res, next) => {
     res.status(200).json({
       success: true,
       messaging: "Movie popular retrieved successfully!",
-      data: movieResult,
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -1157,7 +1152,7 @@ controller.getPopularEpisode = async (req, res, next) => {
     res.status(200).json({
       success: true,
       messaging: "Episode popular retrieved successfully!",
-      data: episodeResult,
+      data: result,
     });
   } catch (error) {
     next(error);

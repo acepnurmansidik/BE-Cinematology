@@ -64,6 +64,7 @@ GenreSchema.pre("validate", function (next) {
     // Memastikan globalService.createSlug tersedia dan bekerja dengan baik
     this.slug = globalService.createSlug(this.name);
   }
+  next();
 });
 
 // --- EXPORT MODEL ---

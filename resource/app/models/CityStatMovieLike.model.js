@@ -64,10 +64,13 @@ CityStatMovieLikeSchema.index(
     regionName: 1,
     city: 1,
     date_format: 1,
-    movie_id: 1,
     on_model: 1,
   },
   { unique: true },
 );
+
+// Index pendukung untuk query rekomendasi/trending (filter lokasi & rentang waktu)
+CityStatMovieLikeSchema.index({ regionName: 1, city: 1 });
+CityStatMovieLikeSchema.index({ created_at: -1 });
 
 module.exports = model("CityStatMovieLike", CityStatMovieLikeSchema);

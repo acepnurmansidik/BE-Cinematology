@@ -27,13 +27,15 @@ controller.index = async (req, res, next) => {
     #swagger.parameters['limit'] = { default: 10, description: 'limit' }
     #swagger.parameters['page'] = { default: 1, description: 'page' }
   */
-    const page_size = await ReffparamModel.countDocuments(query);
-    const result = await crudServices.findAllPagination(ReffparamModel, {
-      query,
-      populateField,
-      skip,
-      limit,
-    });
+    const [page_size, result] = await Promise.all([
+      ReffparamModel.countDocuments(query),
+      crudServices.findAllPagination(ReffparamModel, {
+        query,
+        populateField,
+        skip,
+        limit,
+      }),
+    ]);
 
     res.status(200).json({ ...result, page_size, current_page: Number(page) });
   } catch (err) {
